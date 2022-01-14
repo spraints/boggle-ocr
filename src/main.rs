@@ -13,12 +13,24 @@ fn main() {
 
 fn dump(path: &str, cutoff: u8) -> Result<(), Box<dyn Error>> {
     let img = Reader::open(path)?.decode()?;
-    let res = make_bw_rbg(img, cutoff);
+    let mut res = make_bw_rbg(img, cutoff);
+    draw_line(&mut res);
     res.save("computer-vision.png")?;
     Ok(())
 }
 
-fn make_bw_rbg(img: DynamicImage, cutoff: u8) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+type IB = ImageBuffer<Rgb<u8>, Vec<u8>>;
+
+fn draw_line(img: &mut IB) {
+    let (w, h) = img.dimensions();
+    for i in 0..w {
+        if i < h {
+            img.put_pixel(i, i, Rgb::from([255, 0, 0]));
+        }
+    }
+}
+
+fn make_bw_rbg(img: DynamicImage, cutoff: u8) -> IB {
     let (w, h) = img.dimensions();
     let mut res = ImageBuffer::new(w, h);
     for (x, y, p) in img.pixels() {

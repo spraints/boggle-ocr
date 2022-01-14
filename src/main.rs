@@ -1,5 +1,4 @@
-use image::GenericImageView;
-use image::Pixel;
+use image::{GenericImageView, Pixel};
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -14,13 +13,22 @@ fn main() {
 
 fn dump(path: &str) -> Result<(), Box<dyn Error>> {
     let img = image::io::Reader::open(path)?.decode()?;
-    //let img = img.grayscale();
     let encoder = image::codecs::png::PngEncoder::new(File::create("grayscale.png")?);
     let (x, y) = img.dimensions();
-    encoder.encode(&lumas(&img), x, y, image::ColorType::L8)?;
+    let cutoff = 115; // todo make this a command line arg. Lower number makes more white.
+    encoder.encode(&lumas(&img, cutoff), x, y, image::ColorType::L8)?;
     Ok(())
 }
 
-fn lumas(img: &image::DynamicImage) -> Vec<u8> {
-    img.pixels().map(|(_, _, p)| p.to_luma().0[0]).collect()
+fn lumas(img: &image::DynamicImage, cutoff: u8) -> Vec<u8> {
+    img.pixels().map(|(_, _, p)| bw(p, cutoff)).collect()
+}
+
+fn bw<P: Pixel<Subpixel = u8>>(p: P, cutoff: u8) -> u8 {
+    let v = p.to_luma().0[0];
+    if v > cutoff {
+        255
+    } else {
+        0
+    }
 }

@@ -1,4 +1,8 @@
+use image::GenericImageView;
+use image::Pixel;
 use std::env;
+use std::error::Error;
+use std::fs::File;
 
 fn main() {
     let mut args = env::args().skip(1);
@@ -8,19 +12,15 @@ fn main() {
     };
 }
 
-fn dump(path: &str) -> image::ImageResult<()> {
+fn dump(path: &str) -> Result<(), Box<dyn Error>> {
     let img = image::io::Reader::open(path)?.decode()?;
-    match img {
-        image::DynamicImage::ImageLuma8(_) => println!("ImageLuma8"),
-        image::DynamicImage::ImageLumaA8(_) => println!("ImageLumaA8"),
-        image::DynamicImage::ImageRgb8(_) => println!("ImageRgb8"),
-        image::DynamicImage::ImageRgba8(_) => println!("ImageRgba8"),
-        image::DynamicImage::ImageBgr8(_) => println!("ImageBgr8"),
-        image::DynamicImage::ImageBgra8(_) => println!("ImageBgra8"),
-        image::DynamicImage::ImageLuma16(_) => println!("ImageLuma16"),
-        image::DynamicImage::ImageLumaA16(_) => println!("ImageLumaA16"),
-        image::DynamicImage::ImageRgb16(_) => println!("ImageRgb16"),
-        image::DynamicImage::ImageRgba16(_) => println!("ImageRgba16"),
-    };
+    //let img = img.grayscale();
+    let encoder = image::codecs::png::PngEncoder::new(File::create("grayscale.png")?);
+    let (x, y) = img.dimensions();
+    encoder.encode(&lumas(&img), x, y, image::ColorType::L8)?;
     Ok(())
+}
+
+fn lumas(img: &image::DynamicImage) -> Vec<u8> {
+    img.pixels().map(|(_, _, p)| p.to_luma().0[0]).collect()
 }

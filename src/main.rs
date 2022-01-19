@@ -22,12 +22,12 @@ fn dump(path: &str, cutoff: u8) -> Result<(), Box<dyn Error>> {
 }
 
 type IB = ImageBuffer<Rgb<u8>, Vec<u8>>;
-const WINDOW: u32 = 4;
+const WINDOW: u32 = 5;
 const MIN_DETECTED: usize = 3;
 
 fn draw_edges(img: IB) -> IB {
     let (w, h) = img.dimensions();
-    let ref_img = img.clone();
+    let ref_img = img;
     let mut img = ImageBuffer::new(w, h);
     for x in 0..w - WINDOW {
         for y in 0..h - WINDOW {

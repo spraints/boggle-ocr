@@ -1,4 +1,4 @@
-use image::{io::Reader, DynamicImage, GenericImageView, ImageBuffer, Pixel, Rgb};
+use image::{io::Reader, DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb};
 use std::env;
 use std::error::Error;
 
@@ -15,36 +15,47 @@ fn main() {
 
 fn dump(path: &str, cutoff: u8) -> Result<(), Box<dyn Error>> {
     let img = Reader::open(path)?.decode()?;
-    let mut res = make_bw_rbg(img, cutoff);
-    draw_edges(&mut res);
+    let res = make_bw_rbg(img, cutoff);
+    let res = draw_edges(res);
     res.save("computer-vision.png")?;
     Ok(())
 }
 
 type IB = ImageBuffer<Rgb<u8>, Vec<u8>>;
+const WINDOW: u32 = 4;
+const MIN_DETECTED: usize = 3;
 
-fn draw_edges(img: &mut IB) {
+fn draw_edges(img: IB) -> IB {
     let (w, h) = img.dimensions();
-    for x in 0..w - 1 {
-        for y in 0..h - 1 {
-            if is_edge(&img, x, y) {
-                img.put_pixel(x, y, Rgb::from([255, 0, 0]));
+    let ref_img = img.clone();
+    let mut img = ImageBuffer::new(w, h);
+    for x in 0..w - WINDOW {
+        for y in 0..h - WINDOW {
+            if is_edge(&ref_img, x, y) {
+                let mut si = img.sub_image(x, y, WINDOW, WINDOW);
+                for si_x in 0..WINDOW {
+                    for si_y in 0..WINDOW {
+                        si.put_pixel(si_x, si_y, Rgb::from([255, 0, 0]));
+                    }
+                }
             }
         }
     }
+    img
 }
 
 fn is_edge(img: &IB, x: u32, y: u32) -> bool {
-    let p = img.get_pixel(x, y);
-    let r = img.get_pixel(x + 1, y);
-    if p != r {
-        return true;
+    let v = img.view(x, y, WINDOW, WINDOW);
+    let mut white = 0;
+    let mut black = 0;
+    for (_, _, p) in v.pixels() {
+        if p.0[0] == 0 {
+            black += 1;
+        } else {
+            white += 1;
+        }
     }
-    let d = img.get_pixel(x, y + 1);
-    if p != d {
-        return true;
-    }
-    false
+    black > MIN_DETECTED && white > MIN_DETECTED
 }
 
 fn make_bw_rbg(img: DynamicImage, cutoff: u8) -> IB {

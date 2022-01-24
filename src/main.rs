@@ -1,6 +1,10 @@
-use image::{io::Reader, DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgb};
+use image::{io::Reader, DynamicImage, GenericImageView, ImageBuffer, Pixel, Rgb};
+use skew::get_skew;
 use std::env;
 use std::error::Error;
+use std::f64::consts::PI;
+
+mod skew;
 
 // https://en.wikipedia.org/wiki/Optical_character_recognition
 
@@ -16,46 +20,33 @@ fn main() {
 fn dump(path: &str, cutoff: u8) -> Result<(), Box<dyn Error>> {
     let img = Reader::open(path)?.decode()?;
     let res = make_bw_rbg(img, cutoff);
-    let res = draw_edges(res);
+    let angle = get_skew(&res);
+    println!("angle: {}", angle);
+    let res = draw_angle(res, angle);
     res.save("computer-vision.png")?;
     Ok(())
 }
 
 type IB = ImageBuffer<Rgb<u8>, Vec<u8>>;
-const WINDOW: u32 = 5;
-const MIN_DETECTED: usize = 3;
 
-fn draw_edges(img: IB) -> IB {
+fn draw_angle(mut img: IB, angle: f64) -> IB {
+    // +
+    // |\  <-- angle
+    // | \
+    // |  \
+    // +   + <-- x / y = tan(angle)
     let (w, h) = img.dimensions();
-    let ref_img = img;
-    let mut img = ImageBuffer::new(w, h);
-    for x in 0..w - WINDOW {
-        for y in 0..h - WINDOW {
-            if is_edge(&ref_img, x, y) {
-                let mut si = img.sub_image(x, y, WINDOW, WINDOW);
-                for si_x in 0..WINDOW {
-                    for si_y in 0..WINDOW {
-                        si.put_pixel(si_x, si_y, Rgb::from([255, 0, 0]));
-                    }
-                }
-            }
+    let mid_x = w / 2;
+    let angle = -angle * PI / 180.0;
+    let tan_angle = angle.tan();
+    println!("shift: {}", tan_angle);
+    for y in 0..h {
+        let x = mid_x + (y as f64 * tan_angle) as u32;
+        for x in x..x + 3 {
+            img.put_pixel(x, y, Rgb::from([255, 0, 0]))
         }
     }
     img
-}
-
-fn is_edge(img: &IB, x: u32, y: u32) -> bool {
-    let v = img.view(x, y, WINDOW, WINDOW);
-    let mut white = 0;
-    let mut black = 0;
-    for (_, _, p) in v.pixels() {
-        if p.0[0] == 0 {
-            black += 1;
-        } else {
-            white += 1;
-        }
-    }
-    black > MIN_DETECTED && white > MIN_DETECTED
 }
 
 fn make_bw_rbg(img: DynamicImage, cutoff: u8) -> IB {

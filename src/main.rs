@@ -4,6 +4,7 @@ use opencv::{imgcodecs, imgproc};
 use std::env;
 use std::error::Error;
 
+pub mod dictionary;
 mod wordsearch;
 
 // detect dice: https://stackoverflow.com/questions/55169645/square-detection-in-image

@@ -1,65 +1,108 @@
-use image::{io::Reader, DynamicImage, GenericImageView, ImageBuffer, Pixel, Rgb};
-use skew::get_skew;
+use opencv::core::{Mat, Point, Vec3i, BORDER_DEFAULT};
+use opencv::types::VectorOfVec3i;
+use opencv::{imgcodecs, imgproc};
 use std::env;
 use std::error::Error;
-use std::f64::consts::PI;
 
-mod skew;
+mod wordsearch;
 
-// https://en.wikipedia.org/wiki/Optical_character_recognition
+// detect dice: https://stackoverflow.com/questions/55169645/square-detection-in-image
+// opencv rust: https://docs.rs/opencv/0.62.0/opencv/index.html
 
 fn main() {
     let mut args = env::args().skip(1);
-    let cutoff = 115; // todo make this a command line arg. Lower number makes more white.
     match args.next() {
         None => println!("Usage: boggle-ocr IMAGE"),
-        Some(arg) => dump(&arg, cutoff).unwrap(),
+        Some(arg) => dump(&arg).unwrap(),
     };
 }
 
-fn dump(path: &str, cutoff: u8) -> Result<(), Box<dyn Error>> {
-    let img = Reader::open(path)?.decode()?;
-    let res = make_bw_rbg(img, cutoff);
-    let angle = get_skew(&res);
-    println!("angle: {}", angle);
-    let res = draw_angle(res, angle);
-    res.save("computer-vision.png")?;
+fn dump(path: &str) -> Result<(), Box<dyn Error>> {
+    let img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;
+
+    println!("converting to grayscale...");
+    let mut gray = Mat::default();
+    imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+    println!("blurring...");
+    let mut blur = Mat::default();
+    imgproc::median_blur(&gray, &mut blur, 5)?;
+    println!("sharpening...");
+    let sharpen_kernel = VectorOfVec3i::from_slice(&[
+        Vec3i::from([-1, -1, -1]),
+        Vec3i::from([-1, 9, -1]),
+        Vec3i::from([-1, -1, -1]),
+    ]);
+    let mut sharpen = Mat::default();
+    imgproc::filter_2d(
+        &blur,
+        &mut sharpen,
+        -1,
+        &sharpen_kernel,
+        Point { x: -1, y: -1 },
+        0.0,
+        BORDER_DEFAULT,
+    )?;
+
+    println!("applying a threshold...");
+    let mut thresh = Mat::default();
+    imgproc::threshold(
+        &sharpen,
+        &mut thresh,
+        160.0,
+        255.0,
+        imgproc::THRESH_BINARY_INV,
+    )?;
+    println!("morphology thing...");
+    // thresh = thresh[1] // ????
+    let kernel = imgproc::get_structuring_element(
+        imgproc::MORPH_RECT,
+        Size {
+            width: 3,
+            height: 3,
+        },
+        Point { x: -1, y: -1 },
+    )?;
+    let mut close = Mat::default();
+    imgproc::morphology_ex(
+        &thresh,
+        &mut close,
+        imgproc::MORPH_CLOSE,
+        kernel,
+        Point { x: -1, y: -1 },
+        2,
+        imgproc::BORDER_CONSTANT,
+        imgproc::morphology_default_border_value()?,
+    )?;
+
+    println!("find contours...");
+    let mut cnts = Mat::default();
+    imgproc::find_contours(
+        &close,
+        &mut cnts,
+        imgproc::RETR_EXTERNAL,
+        imgproc::CHAIN_APPROX_SIMPLE,
+        Point::new(),
+    )?;
+    // cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+    /*
+    min_area = 100
+    max_area = 1500
+    image_number = 0
+    for c in cnts:
+        area = cv2.contourArea(c)
+        if area > min_area and area < max_area:
+            x,y,w,h = cv2.boundingRect(c)
+            ROI = image[y:y+h, x:x+w]
+            cv2.imwrite('ROI_{}.png'.format(image_number), ROI)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
+            image_number += 1
+
+    cv2.imshow('sharpen', sharpen)
+    cv2.imshow('close', close)
+    cv2.imshow('thresh', thresh)
+    cv2.imshow('image', image)
+    cv2.waitKey()
+         */
     Ok(())
-}
-
-type IB = ImageBuffer<Rgb<u8>, Vec<u8>>;
-
-fn draw_angle(mut img: IB, angle: f64) -> IB {
-    // +
-    // |\  <-- angle
-    // | \
-    // |  \
-    // +   + <-- x / y = tan(angle)
-    let (w, h) = img.dimensions();
-    let mid_x = w / 2;
-    let angle = -angle * PI / 180.0;
-    let tan_angle = angle.tan();
-    println!("shift: {}", tan_angle);
-    for y in 0..h {
-        let x = mid_x + (y as f64 * tan_angle) as u32;
-        for x in x..x + 3 {
-            img.put_pixel(x, y, Rgb::from([255, 0, 0]))
-        }
-    }
-    img
-}
-
-fn make_bw_rbg(img: DynamicImage, cutoff: u8) -> IB {
-    let (w, h) = img.dimensions();
-    let mut res = ImageBuffer::new(w, h);
-    for (x, y, p) in img.pixels() {
-        let mut bw = p.to_luma();
-        if bw.0[0] > cutoff {
-            bw.0[0] = 255;
-        } else {
-            bw.0[0] = 0;
-        }
-        res.put_pixel(x, y, bw.to_rgb());
-    }
-    res
 }

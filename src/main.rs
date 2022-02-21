@@ -18,6 +18,10 @@ fn main() {
 }
 
 fn dump(path: &str) -> Result<(), Box<dyn Error>> {
+    if path.ends_with(".txt") {
+        return wordsearch::find_all_in_file(path);
+    }
+
     let img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;
 
     println!("converting to grayscale...");
@@ -52,6 +56,7 @@ fn dump(path: &str) -> Result<(), Box<dyn Error>> {
         255.0,
         imgproc::THRESH_BINARY_INV,
     )?;
+    /*
     println!("morphology thing...");
     // thresh = thresh[1] // ????
     let kernel = imgproc::get_structuring_element(
@@ -84,6 +89,7 @@ fn dump(path: &str) -> Result<(), Box<dyn Error>> {
         Point::new(),
     )?;
     // cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    */
 
     /*
     min_area = 100

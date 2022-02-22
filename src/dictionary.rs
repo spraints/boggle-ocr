@@ -25,10 +25,12 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     let j = read_to_string("OWL2.json")?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
-    let mut n = 0;
-    for (word, _) in de.deserialize_map(OWLVisitor::new())? {
+    for (n, (word, _)) in de
+        .deserialize_map(OWLVisitor::new())?
+        .into_iter()
+        .enumerate()
+    {
         builder.insert(word, DEBUG && n < 10);
-        n += 1;
     }
     Ok(builder.into_dict(DEBUG))
 }
@@ -134,7 +136,7 @@ impl DictionaryBuilder {
                     }
                     max_i = i
                 }
-                return max_i + 1;
+                max_i + 1
             }
         }
     }
@@ -186,7 +188,7 @@ impl DictionaryBuilder {
                 res.push(' ');
             }
         }
-        res.push_str("]");
+        res.push(']');
         res
     }
 }
@@ -263,17 +265,14 @@ impl Node {
 
     pub fn lookup(&self, ch: usize) -> Option<&Node> {
         match self.children.get(ch) {
-            None => None,
-            Some(child) => match child {
-                None => None,
-                Some(rc_node) => {
-                    if ch == Q {
-                        rc_node.lookup(U)
-                    } else {
-                        Some(&rc_node)
-                    }
+            Some(Some(rc_node)) => {
+                if ch == Q {
+                    rc_node.lookup(U)
+                } else {
+                    Some(rc_node)
                 }
-            },
+            }
+            _ => None,
         }
     }
 }

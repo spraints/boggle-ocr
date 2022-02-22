@@ -248,6 +248,9 @@ pub struct Node {
     children: Vec<Option<Rc<Node>>>,
 }
 
+const Q: usize = 16;
+const U: usize = 20;
+
 impl Node {
     fn new() -> Self {
         Self {
@@ -262,7 +265,13 @@ impl Node {
             None => None,
             Some(child) => match child {
                 None => None,
-                Some(rc_node) => Some(&rc_node),
+                Some(rc_node) => {
+                    if ch == Q {
+                        rc_node.lookup(U)
+                    } else {
+                        Some(&rc_node)
+                    }
+                }
             },
         }
     }

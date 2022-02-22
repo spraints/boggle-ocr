@@ -10,16 +10,28 @@ pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
     let board = boggled(&raw_board)?;
 
     let words = find_words(&dict, &board);
-    println!("found {} words", words.len());
+    let total_score: usize = words.iter().map(|w| score(&w)).sum();
+    println!("found {} words, {} points", words.len(), total_score);
     for (i, w) in words.into_iter().enumerate() {
         if i % 20 == 0 {
             println!("");
             println!("{}", raw_board);
         }
-        println!("  {}", w);
+        println!("  {:2} {}", score(&w), w);
     }
 
     Ok(())
+}
+
+fn score(word: &str) -> usize {
+    match word.len() {
+        0 | 1 | 2 => 0,
+        3 | 4 => 1,
+        5 => 2,
+        6 => 3,
+        7 => 5,
+        _ => 11,
+    }
 }
 
 fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {

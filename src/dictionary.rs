@@ -21,6 +21,7 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
         let dict = builder.into_dict(true);
         dict.show_example_words();
     }
+    // TODO - cache this to save ~ 0.5s
     let j = read_to_string("OWL2.json")?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();

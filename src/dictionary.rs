@@ -1,5 +1,4 @@
 use serde::de::{Deserializer, MapAccess, Visitor};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::read_to_string;
@@ -8,7 +7,7 @@ use std::rc::Rc;
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
 // and https://github.com/sile/rust-dawg
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     if DEBUG {
@@ -32,8 +31,6 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     }
     Ok(builder.into_dict(DEBUG))
 }
-
-type RcNodeBuilder = Rc<RefCell<NodeBuilder>>;
 
 struct DictionaryBuilder {
     previous_word: Option<String>,
@@ -210,37 +207,6 @@ impl NodeBuilder {
     fn set_child(&mut self, letter: char, child_idx: usize) {
         self.children[letter_pos(letter)] = Some(child_idx);
     }
-
-    /*
-    fn into_node(self) -> Node {
-        let (node, _) = self.finish(0);
-        node
-    }
-
-    fn finish(self, mut n: usize) -> (Node, usize) {
-        let id = n;
-        let NodeBuilder { terminal, children } = self;
-        let children = children
-            .into_iter()
-            .map(|c| match c {
-                None => None,
-                Some(c) => {
-                    let (a, b) = c.into_inner().finish(n);
-                    n = b;
-                    Some(a)
-                }
-            })
-            .collect();
-        (
-            Node {
-                terminal,
-                id,
-                children,
-            },
-            n,
-        )
-    }
-    */
 }
 
 pub struct Dictionary {
@@ -276,7 +242,6 @@ fn make_some_words(n: usize, node: &Node) -> Vec<String> {
     res
 }
 
-#[derive(Clone)]
 struct Node {
     terminal: bool,
     id: usize,
@@ -291,43 +256,11 @@ impl Node {
             children: vec![None; 26],
         }
     }
-    //
-    //     fn for_suffix<C: Iterator<Item = char>>(mut chars: C, debug: bool) -> Option<Self> {
-    //         match chars.next() {
-    //             None => None,
-    //             Some(c) => {
-    //                 let mut res = Self::new();
-    //                 match Self::for_suffix(chars, debug) {
-    //                     None => {
-    //                         if debug {
-    //                             println!("  suffix {}: terminal", c);
-    //                         }
-    //                         res.terminal = true
-    //                     }
-    //                     Some(n) => {
-    //                         if debug {
-    //                             println!("  suffix: {}: has more suffix", c);
-    //                         }
-    //                         res.set(c, n)
-    //                     }
-    //                 };
-    //                 Some(res)
-    //             }
-    //         }
-    //     }
-    //
-    //     fn set(&mut self, c: char, child: Self) {
-    //         let pos = c.to_lowercase().next().unwrap() as u8 - b'a';
-    //         assert!(pos >= 0 && pos < 26);
-    //         let pos = pos as usize;
-    //         assert!(self.children[pos].is_none());
-    //         self.children[pos] = Some(child);
-    //     }
 }
 
 fn letter_pos(letter: char) -> usize {
     let pos = letter.to_lowercase().next().unwrap() as u8 - b'a';
-    assert!(pos >= 0 && pos < 26);
+    assert!(pos < 26);
     pos as usize
 }
 

@@ -283,7 +283,7 @@ pub fn letter_pos(letter: char) -> usize {
     pos as usize
 }
 
-fn letter_for_pos(pos: usize) -> char {
+pub fn letter_for_pos(pos: usize) -> char {
     assert!(pos < 26);
     (b'a' + pos as u8) as char
 }

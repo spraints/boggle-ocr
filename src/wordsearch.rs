@@ -6,15 +6,23 @@ use std::fs::read_to_string;
 pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
     let dict = dictionary::open()?;
 
-    let board = boggled(&read_to_string(path)?)?;
+    let raw_board = read_to_string(path)?;
+    let board = boggled(&raw_board)?;
 
-    let n = count_words(&dict, &board);
-    println!("found {} words", n);
+    let words = find_words(&dict, &board);
+    println!("found {} words", words.len());
+    for (i, w) in words.into_iter().enumerate() {
+        if i % 20 == 0 {
+            println!("");
+            println!("{}", raw_board);
+        }
+        println!("  {}", w);
+    }
 
     Ok(())
 }
 
-fn count_words(dict: &dictionary::Dictionary, board: &Board) -> usize {
+fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
     let mut res = HashSet::new();
     let mut scratch = Vec::with_capacity(25);
     for i in 0..5 {
@@ -30,7 +38,15 @@ fn count_words(dict: &dictionary::Dictionary, board: &Board) -> usize {
             );
         }
     }
-    res.len()
+    let mut res: Vec<String> = res.into_iter().map(|w| stringify_word(w)).collect();
+    res.sort();
+    res
+}
+
+fn stringify_word(nw: Vec<usize>) -> String {
+    nw.into_iter()
+        .map(|ch| dictionary::letter_for_pos(ch))
+        .collect()
 }
 
 fn visit(
@@ -45,7 +61,7 @@ fn visit(
     let ch = board[i][j];
     if let Some(next_node) = node.lookup(ch) {
         scratch.push(ch);
-        if next_node.terminal {
+        if next_node.terminal && scratch.len() > 2 {
             res.insert(scratch.clone());
         }
         for di in -1..=1 {
@@ -63,6 +79,7 @@ fn visit(
                 }
             }
         }
+        scratch.pop();
     }
 }
 

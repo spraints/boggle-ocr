@@ -210,7 +210,7 @@ impl NodeBuilder {
 }
 
 pub struct Dictionary {
-    root: Node,
+    pub root: Node,
 }
 
 impl Dictionary {
@@ -242,8 +242,8 @@ fn make_some_words(n: usize, node: &Node) -> Vec<String> {
     res
 }
 
-struct Node {
-    terminal: bool,
+pub struct Node {
+    pub terminal: bool,
     id: usize,
     children: Vec<Option<Rc<Node>>>,
 }
@@ -256,9 +256,19 @@ impl Node {
             children: vec![None; 26],
         }
     }
+
+    pub fn lookup(&self, ch: usize) -> Option<&Node> {
+        match self.children.get(ch) {
+            None => None,
+            Some(child) => match child {
+                None => None,
+                Some(rc_node) => Some(&rc_node),
+            },
+        }
+    }
 }
 
-fn letter_pos(letter: char) -> usize {
+pub fn letter_pos(letter: char) -> usize {
     let pos = letter.to_lowercase().next().unwrap() as u8 - b'a';
     assert!(pos < 26);
     pos as usize

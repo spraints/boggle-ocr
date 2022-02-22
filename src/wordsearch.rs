@@ -1,12 +1,122 @@
 use super::dictionary;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
 
 pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
-    let _dict = dictionary::open()?;
-    let data = read_to_string(path)?;
-    // todo - map 'Q' to 'Qu'
-    let data: Vec<Vec<char>> = data.lines().map(|line| line.chars().collect()).collect();
-    println!("todo: get all the words from {:?}", data);
+    let dict = dictionary::open()?;
+
+    let board = boggled(&read_to_string(path)?)?;
+
+    let n = count_words(&dict, &board);
+    println!("found {} words", n);
+
     Ok(())
 }
+
+fn count_words(dict: &dictionary::Dictionary, board: &Board) -> usize {
+    let mut res = HashSet::new();
+    let mut scratch = Vec::with_capacity(25);
+    for i in 0..5 {
+        for j in 0..5 {
+            let pos = (i, j);
+            visit(
+                pos,
+                mark_visit(0, pos),
+                board,
+                &dict.root,
+                &mut res,
+                &mut scratch,
+            );
+        }
+    }
+    res.len()
+}
+
+fn visit(
+    pos: Pos,
+    visited: Visited,
+    board: &Board,
+    node: &dictionary::Node,
+    res: &mut HashSet<Vec<usize>>,
+    scratch: &mut Vec<usize>,
+) {
+    let (i, j) = pos;
+    let ch = board[i][j];
+    if let Some(next_node) = node.lookup(ch) {
+        scratch.push(ch);
+        if next_node.terminal {
+            res.insert(scratch.clone());
+        }
+        for di in -1..=1 {
+            for dj in -1..=1 {
+                if di != 0 || dj != 0 {
+                    let ni = di + i as isize;
+                    let nj = dj + j as isize;
+                    if ni >= 0 && nj >= 0 && ni < 5 && nj < 5 {
+                        let npos = (ni as usize, nj as usize);
+                        let nvisited = mark_visit(visited, npos);
+                        if nvisited != visited {
+                            visit(npos, nvisited, board, next_node, res, scratch);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn mark_visit(visited: Visited, pos: Pos) -> Visited {
+    let bit = pos.0 * 5 + pos.1;
+    visited | (1 << bit)
+}
+
+type Visited = u32;
+type Pos = (usize, usize);
+type Board = [[usize; 5]; 5];
+
+fn boggled(raw: &str) -> Result<Board, WSError> {
+    let mut res = [[255; 5]; 5];
+    for (i, line) in raw.lines().enumerate() {
+        if i > 4 {
+            return Err(WSError::InvalidBoard(String::from(
+                "too many lines in input",
+            )));
+        }
+        for (j, ch) in line.chars().enumerate() {
+            if j > 4 {
+                return Err(WSError::InvalidBoard(format!(
+                    "too many letters on line {}",
+                    i + 1
+                )));
+            }
+            res[i][j] = dictionary::letter_pos(ch);
+        }
+    }
+    for (i, row) in res.iter().enumerate() {
+        for ch in row {
+            if *ch == 255 {
+                return Err(WSError::InvalidBoard(format!(
+                    "not enough letters on line {}",
+                    i + 1
+                )));
+            }
+        }
+    }
+    Ok(res)
+}
+
+#[derive(Debug)]
+enum WSError {
+    InvalidBoard(String),
+}
+
+impl std::fmt::Display for WSError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            WSError::InvalidBoard(reason) => write!(fmt, "invalid board: {}", reason),
+        }
+    }
+}
+
+impl Error for WSError {}

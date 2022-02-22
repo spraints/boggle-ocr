@@ -17,25 +17,35 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
         builder.insert(word, n < 10);
         n += 1;
     }
-    Ok(builder.into_dict())
+    Ok(builder.into_dict(false))
+    /*
+    let mut builder = DictionaryBuilder::new();
+    builder.insert(String::from("cat"), true);
+    builder.insert(String::from("cats"), true);
+    builder.insert(String::from("fact"), true);
+    builder.insert(String::from("facts"), true);
+    builder.insert(String::from("facet"), true);
+    builder.insert(String::from("facets"), true);
+    Ok(builder.into_dict(true))
+    */
 }
 
 type RcNodeBuilder = Rc<RefCell<NodeBuilder>>;
 
 struct DictionaryBuilder {
     previous_word: Option<String>,
-    root: RcNodeBuilder,
-    minimized_nodes: HashMap<RcNodeBuilder, RcNodeBuilder>,
-    unchecked_nodes: Vec<(RcNodeBuilder, char, RcNodeBuilder)>,
+    nodes: Vec<NodeBuilder>,
+    unchecked: Vec<(usize, char, usize)>,
+    minimized: HashMap<NodeBuilder, usize>,
 }
 
 impl DictionaryBuilder {
     fn new() -> Self {
         Self {
             previous_word: None,
-            root: RcNodeBuilder::new(),
+            nodes: vec![NodeBuilder::new()],
+            unchecked: vec![],
             minimized: HashMap::new(),
-            unchecked_nodes: vec![],
         }
     }
 
@@ -48,28 +58,37 @@ impl DictionaryBuilder {
         if debug {
             println!("  common prefix: {}", common_prefix);
         }
-        self.minimize(common_prefix);
+        self.minimize(common_prefix, debug);
 
-        let mut node = match self.unchecked_nodes.last() {
-            None => self.root.borrow_mut(),
-            Some((_, _, x)) => x.borrow_mut(),
+        let mut node_idx = match self.unchecked.last() {
+            None => 0,
+            Some((_, _, x)) => *x,
         };
 
         for letter in word.chars().skip(common_prefix) {
-            let next_node = RcNodeBuilder::new();
-            node.set_child(letter, next_node);
-            self.unchecked_nodes.push((node, letter, next_node));
-            node = next_node;
+            if debug {
+                println!("  adding a node for '{}'", letter);
+            }
+            let next_node_idx = self.nodes.len();
+            self.nodes.push(NodeBuilder::new());
+            self.nodes[node_idx].set_child(letter, next_node_idx);
+            self.unchecked.push((node_idx, letter, next_node_idx));
+            node_idx = next_node_idx;
         }
 
-        node.terminal = false;
+        self.nodes[node_idx].terminal = true;
+
         self.previous_word = Some(word);
     }
 
-    fn into_dict(self) -> Dictionary {
+    fn into_dict(mut self, debug: bool) -> Dictionary {
+        self.minimize(0, debug);
+        panic!("todo");
+        /*
         Dictionary {
             root: self.root.into_node(0),
         }
+        */
     }
 
     fn common_prefix(&self, word: &str) -> usize {
@@ -89,20 +108,62 @@ impl DictionaryBuilder {
         }
     }
 
-    fn minimize(&mut self, down_to: usize) {
-        while self.unchecked_nodes.len() > down_to {
-            let (parent, letter, child) = self.unchecked_nodes.pop().unwrap();
-            match self.minimized_nodes.get(child) {
-                Some(new_child) => parent.children.borrow_mut().set_child(letter, new_child),
-                None => self.minimized_nodes.insert(child, child),
+    fn minimize(&mut self, down_to: usize, debug: bool) {
+        while self.unchecked.len() > down_to {
+            let (parent_idx, letter, child_idx) = self.unchecked.pop().unwrap();
+            match self.minimized.get(&self.nodes[child_idx]) {
+                Some(new_child_idx) => {
+                    if debug {
+                        println!(
+                            "  - minimizing '{}': {} {} => {} {}",
+                            letter,
+                            child_idx,
+                            self.describe(child_idx),
+                            *new_child_idx,
+                            self.describe(*new_child_idx)
+                        );
+                    }
+                    self.nodes[parent_idx].set_child(letter, *new_child_idx);
+                }
+                None => {
+                    if debug {
+                        println!(
+                            "  - '{}' ({} {}) is already minimized",
+                            letter,
+                            child_idx,
+                            self.describe(child_idx)
+                        );
+                    }
+                    self.minimized
+                        .insert(self.nodes[child_idx].clone(), child_idx);
+                }
             };
         }
     }
+
+    fn describe(&self, idx: usize) -> String {
+        let mut res = String::from("[ ");
+        let node = &self.nodes[idx];
+        for (pos, oidx) in node.children.iter().enumerate() {
+            if let Some(idx) = oidx {
+                res.push(letter_for_pos(pos));
+                if node.terminal {
+                    res.push('!');
+                }
+                res.push('>');
+                res.push_str(&self.describe(*idx));
+                res.push(' ');
+            }
+        }
+        res.push_str("]");
+        res
+    }
 }
 
+#[derive(Eq, Hash, PartialEq, Clone)]
 struct NodeBuilder {
     terminal: bool,
-    children: Vec<Option<RcNodeBuilder>>,
+    children: Vec<Option<usize>>,
 }
 
 impl NodeBuilder {
@@ -113,10 +174,11 @@ impl NodeBuilder {
         }
     }
 
-    fn set_child(&mut self, letter: char, child: RcNodeBuilder) {
-        panic!("todo");
+    fn set_child(&mut self, letter: char, child_idx: usize) {
+        self.children[letter_pos(letter)] = Some(child_idx);
     }
 
+    /*
     fn into_node(self) -> Node {
         let (node, _) = self.finish(0);
         node
@@ -145,6 +207,7 @@ impl NodeBuilder {
             n,
         )
     }
+    */
 }
 
 pub struct Dictionary {
@@ -199,6 +262,17 @@ struct Node {
 //         self.children[pos] = Some(child);
 //     }
 // }
+
+fn letter_pos(letter: char) -> usize {
+    let pos = letter.to_lowercase().next().unwrap() as u8 - b'a';
+    assert!(pos >= 0 && pos < 26);
+    pos as usize
+}
+
+fn letter_for_pos(pos: usize) -> char {
+    assert!(pos < 26);
+    (b'a' + pos as u8) as char
+}
 
 struct OWLVisitor {}
 

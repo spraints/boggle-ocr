@@ -57,8 +57,40 @@ fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
 
 fn stringify_word(nw: Vec<usize>) -> String {
     nw.into_iter()
-        .map(|ch| dictionary::letter_for_pos(ch))
+        .flat_map(|ch| QU::new(dictionary::letter_for_pos(ch)))
         .collect()
+}
+
+struct QU {
+    letter: char,
+    pos: usize,
+}
+
+impl QU {
+    fn new(letter: char) -> Self {
+        Self { letter, pos: 0 }
+    }
+}
+
+impl Iterator for QU {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.pos {
+            0 => {
+                self.pos += 1;
+                Some(self.letter)
+            }
+            1 => match self.letter {
+                'q' => {
+                    self.pos += 1;
+                    Some('u')
+                }
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }
 
 fn visit(

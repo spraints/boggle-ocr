@@ -30,7 +30,7 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
         builder.insert(word, DEBUG && n < 10);
         n += 1;
     }
-    Ok(builder.into_dict(false))
+    Ok(builder.into_dict(DEBUG))
 }
 
 type RcNodeBuilder = Rc<RefCell<NodeBuilder>>;
@@ -40,6 +40,7 @@ struct DictionaryBuilder {
     nodes: Vec<NodeBuilder>,
     unchecked: Vec<(usize, char, usize)>,
     minimized: HashMap<NodeBuilder, usize>,
+    words: usize,
 }
 
 impl DictionaryBuilder {
@@ -49,10 +50,13 @@ impl DictionaryBuilder {
             nodes: vec![NodeBuilder::new()],
             unchecked: vec![],
             minimized: HashMap::new(),
+            words: 0,
         }
     }
 
     fn insert(&mut self, word: String, debug: bool) {
+        self.words += 1;
+
         if debug {
             println!("inserting '{}'", word);
         }
@@ -85,10 +89,19 @@ impl DictionaryBuilder {
     }
 
     fn into_dict(mut self, debug: bool) -> Dictionary {
-        self.minimize(0, debug);
+        self.minimize(0, false);
 
+        let sz1 = self.nodes.len();
         let mut nodes = HashMap::new(); // idx -> Rc<Node>
         let root = self.map(0, &mut nodes);
+        if debug {
+            println!(
+                "generated {} nodes for {} words with {} intermediate nodes",
+                nodes.len(),
+                self.words,
+                sz1
+            );
+        }
         Dictionary { root }
     }
 

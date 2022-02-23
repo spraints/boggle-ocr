@@ -10,29 +10,38 @@ use std::rc::Rc;
 const DEBUG: bool = false;
 
 pub fn open() -> Result<Dictionary, Box<dyn Error>> {
-    if DEBUG {
-        let mut builder = DictionaryBuilder::new();
-        builder.insert(String::from("cat"), true);
-        builder.insert(String::from("cats"), true);
-        builder.insert(String::from("fact"), true);
-        builder.insert(String::from("facts"), true);
-        builder.insert(String::from("facet"), true);
-        builder.insert(String::from("facets"), true);
-        let dict = builder.into_dict(true);
-        dict.show_example_words();
-    }
+    use std::time::Instant;
+
     // TODO - cache this to save ~ 0.5s
+    let t = Instant::now();
     let j = read_to_string("OWL2.json")?;
+    report_time("read_to_string", t);
+
+    let t = Instant::now();
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
-    for (n, (word, _)) in de
-        .deserialize_map(OWLVisitor::new())?
-        .into_iter()
-        .enumerate()
-    {
+    let map = de.deserialize_map(OWLVisitor::new())?;
+    report_time("deserialize_map", t);
+
+    let t = Instant::now();
+    for (n, (word, _)) in map.into_iter().enumerate() {
         builder.insert(word, DEBUG && n < 10);
     }
-    Ok(builder.into_dict(DEBUG))
+    report_time("insertion", t);
+
+    let t = Instant::now();
+    let ret = builder.into_dict(DEBUG);
+    report_time("into_dict", t);
+
+    Ok(ret)
+}
+
+const REPORT_TIME: bool = true;
+
+fn report_time(label: &str, t: std::time::Instant) {
+    if REPORT_TIME {
+        println!("{}: {:.2?}", label, t.elapsed());
+    }
 }
 
 struct DictionaryBuilder {
@@ -216,14 +225,6 @@ pub struct Dictionary {
     pub root: Node,
 }
 
-impl Dictionary {
-    fn show_example_words(&self) {
-        for w in make_some_words(10, &self.root) {
-            println!("example word: {}", w);
-        }
-    }
-}
-
 fn make_some_words(n: usize, node: &Node) -> Vec<String> {
     let mut res = vec![];
     if node.terminal {
@@ -309,5 +310,26 @@ impl<'de> Visitor<'de> for OWLVisitor {
             res.push((key, value));
         }
         Ok(res)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn sample() {
+        let mut builder = super::DictionaryBuilder::new();
+        builder.insert(String::from("cat"), true);
+        builder.insert(String::from("cats"), true);
+        builder.insert(String::from("fact"), true);
+        builder.insert(String::from("facts"), true);
+        builder.insert(String::from("facet"), true);
+        builder.insert(String::from("facets"), true);
+        let dict = builder.into_dict(true);
+        let mut words = super::make_some_words(10, &dict.root);
+        words.sort();
+        assert_eq!(
+            vec!["cat", "cats", "facet", "facets", "fact", "facts"],
+            words
+        );
     }
 }

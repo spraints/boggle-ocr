@@ -11,12 +11,14 @@ pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
 
     let words = find_words(&dict, &board);
     let total_score: usize = words.iter().map(|w| score(w)).sum();
+    println!("{}", raw_board);
     println!("found {} words, {} points", words.len(), total_score);
-    for (i, w) in words.into_iter().enumerate() {
-        if i % 20 == 0 {
-            println!("\n{}", raw_board);
-        }
-        println!("  {:2} {}", score(&w), w);
+    println!("best words:");
+    let mut scored_words: Vec<(usize, String)> =
+        words.into_iter().map(|w| (score(&w), w)).collect();
+    scored_words.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
+    for (s, w) in scored_words.into_iter().take(20) {
+        println!("  {:2} {}", s, w);
     }
 
     Ok(())

@@ -225,27 +225,6 @@ pub struct Dictionary {
     pub root: Node,
 }
 
-fn make_some_words(n: usize, node: &Node) -> Vec<String> {
-    let mut res = vec![];
-    if node.terminal {
-        res.push(String::from(""));
-    }
-    if res.len() >= n {
-        return res;
-    }
-    for (i, child) in node.children.iter().enumerate() {
-        if let Some(child) = child {
-            for w in make_some_words(n - res.len(), child) {
-                res.push(format!("{}{}", letter_for_pos(i), w));
-                if res.len() >= n {
-                    return res;
-                }
-            }
-        }
-    }
-    res
-}
-
 pub struct Node {
     pub terminal: bool,
     id: usize,
@@ -315,21 +294,50 @@ impl<'de> Visitor<'de> for OWLVisitor {
 
 #[cfg(test)]
 mod test {
-    #[test]
-    fn sample() {
+    fn make_test_dictionary(debug: bool) -> super::Dictionary {
         let mut builder = super::DictionaryBuilder::new();
-        builder.insert(String::from("cat"), true);
-        builder.insert(String::from("cats"), true);
-        builder.insert(String::from("fact"), true);
-        builder.insert(String::from("facts"), true);
-        builder.insert(String::from("facet"), true);
-        builder.insert(String::from("facets"), true);
-        let dict = builder.into_dict(true);
-        let mut words = super::make_some_words(10, &dict.root);
+        builder.insert(String::from("cat"), debug);
+        builder.insert(String::from("cats"), debug);
+        builder.insert(String::from("fact"), debug);
+        builder.insert(String::from("facts"), debug);
+        builder.insert(String::from("facet"), debug);
+        builder.insert(String::from("facets"), debug);
+        builder.into_dict(debug)
+    }
+
+    fn check_test_words(dict: &super::Dictionary) {
+        let mut words = make_some_words(10, &dict.root);
         words.sort();
         assert_eq!(
             vec!["cat", "cats", "facet", "facets", "fact", "facts"],
             words
         );
+    }
+
+    #[test]
+    fn example() {
+        let dict = make_test_dictionary(true);
+        check_test_words(&dict);
+    }
+
+    fn make_some_words(n: usize, node: &super::Node) -> Vec<String> {
+        let mut res = vec![];
+        if node.terminal {
+            res.push(String::from(""));
+        }
+        if res.len() >= n {
+            return res;
+        }
+        for (i, child) in node.children.iter().enumerate() {
+            if let Some(child) = child {
+                for w in make_some_words(n - res.len(), child) {
+                    res.push(format!("{}{}", super::letter_for_pos(i), w));
+                    if res.len() >= n {
+                        return res;
+                    }
+                }
+            }
+        }
+        res
     }
 }

@@ -9,7 +9,10 @@ pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
     let raw_board = read_to_string(path)?;
     let board = boggled(&raw_board)?;
 
+    let t = std::time::Instant::now();
     let words = find_words(&dict, &board);
+    dictionary::report_time("find_words", t);
+
     let total_score: usize = words.iter().map(|w| score(w)).sum();
     println!("{}", raw_board);
     println!("found {} words, {} points", words.len(), total_score);

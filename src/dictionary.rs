@@ -67,7 +67,7 @@ fn dump(dict: &Dictionary) -> std::io::Result<()> {
 
 const REPORT_TIME: bool = true;
 
-fn report_time(label: &str, t: std::time::Instant) {
+pub fn report_time(label: &str, t: std::time::Instant) {
     if REPORT_TIME {
         println!("{}: {:.2?}", label, t.elapsed());
     }

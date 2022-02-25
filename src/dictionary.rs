@@ -270,11 +270,6 @@ impl Dictionary {
             None => Err(Box::new(DError::NoNodesInInput)),
             Some(node) => Ok(Self { root: node }),
         }
-
-        //let mut s = String::new();
-        //r.read_to_string(&mut s)?;
-        //println!("FROM: {}", s);
-        //Ok(Self { root: Node::new() })
     }
 }
 

@@ -1,5 +1,5 @@
 use serde::de::{Deserializer, MapAccess, Visitor};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::read_to_string;
 use std::rc::Rc;
@@ -225,6 +225,26 @@ pub struct Dictionary {
     pub root: Node,
 }
 
+impl Dictionary {
+    fn save<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
+        let mut written = HashSet::new();
+        self.root.save(w, &mut written)
+    }
+
+    fn from<R: std::io::BufRead>(r: &mut R) -> Result<Self, Box<dyn Error>> {
+        let mut nodes = HashMap::new();
+        let mut root = None;
+        while let Some(node) = Node::from(r, &mut nodes)? {
+            root = Some(node);
+        }
+        match root {
+            None => Err(Box::new(DError::NoNodesInInput)),
+            Some(node) => Ok(Self { root: node }),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct Node {
     pub terminal: bool,
     id: usize,
@@ -253,6 +273,176 @@ impl Node {
                 }
             }
             _ => None,
+        }
+    }
+
+    fn save<W: std::io::Write>(&self, w: &mut W, seen: &mut HashSet<usize>) -> std::io::Result<()> {
+        if !seen.insert(self.id) {
+            return Ok(());
+        }
+        for child in &self.children {
+            if let Some(child) = child {
+                child.save(w, seen)?;
+            }
+        }
+        write!(w, "[{}{}]", self.id, if self.terminal { "!" } else { "" })?;
+        for (i, child) in self.children.iter().enumerate() {
+            if let Some(child) = child {
+                write!(w, " {}:{}", i, child.id)?;
+            }
+        }
+        write!(w, ";")?;
+        Ok(())
+    }
+
+    fn from<R: std::io::BufRead>(
+        r: &mut R,
+        nodes: &mut HashMap<usize, Rc<Node>>,
+    ) -> Result<Option<Self>, Box<dyn Error>> {
+        let mut data = vec![];
+        let n = r.read_until(b';', &mut data)?;
+        if n == 0 {
+            return Ok(None);
+        }
+        println!("READ '{}'", std::str::from_utf8(&data).unwrap());
+        let mut res = Self::new();
+        res.parse(data, nodes)?;
+        nodes.insert(res.id, Rc::new(res.clone()));
+        Ok(Some(res))
+    }
+
+    fn parse(
+        &mut self,
+        s: Vec<u8>,
+        nodes: &mut HashMap<usize, Rc<Node>>,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut c = s.iter();
+        match c.next() {
+            Some(b'[') => (),
+            _ => return Err(Box::new(DError::InvalidNode(s))),
+        };
+
+        loop {
+            match c.next() {
+                Some(b'0') => self.id = self.id * 10,
+                Some(b'1') => self.id = self.id * 10 + 1,
+                Some(b'2') => self.id = self.id * 10 + 2,
+                Some(b'3') => self.id = self.id * 10 + 3,
+                Some(b'4') => self.id = self.id * 10 + 4,
+                Some(b'5') => self.id = self.id * 10 + 5,
+                Some(b'6') => self.id = self.id * 10 + 6,
+                Some(b'7') => self.id = self.id * 10 + 7,
+                Some(b'8') => self.id = self.id * 10 + 8,
+                Some(b'9') => self.id = self.id * 10 + 9,
+                Some(b'!') => {
+                    self.terminal = true;
+                    continue;
+                }
+                Some(b']') => {
+                    break;
+                }
+                _ => return Err(Box::new(DError::InvalidNode(s))),
+            };
+        }
+
+        match c.next() {
+            Some(b';') => {
+                return Ok(());
+            }
+            Some(b' ') => {}
+            _ => return Err(Box::new(DError::InvalidNode(s))),
+        };
+
+        let mut st = NodeRefParseState::new();
+        loop {
+            match c.next() {
+                Some(b'0') => {
+                    st.push_digit(0);
+                }
+                Some(b'1') => {
+                    st.push_digit(1);
+                }
+                Some(b'2') => {
+                    st.push_digit(2);
+                }
+                Some(b'3') => {
+                    st.push_digit(3);
+                }
+                Some(b'4') => {
+                    st.push_digit(4);
+                }
+                Some(b'5') => {
+                    st.push_digit(5);
+                }
+                Some(b'6') => {
+                    st.push_digit(6);
+                }
+                Some(b'7') => {
+                    st.push_digit(7);
+                }
+                Some(b'8') => {
+                    st.push_digit(8);
+                }
+                Some(b'9') => {
+                    st.push_digit(9);
+                }
+                Some(b':') => {
+                    st.ch_done();
+                }
+                Some(b' ') => {
+                    st.commit(self, nodes)?;
+                    println!("TIME TO DO THE NEXT ONE");
+                    st = NodeRefParseState::new()
+                }
+                Some(b';') => {
+                    st.commit(self, nodes)?;
+                    println!("ALL DONE");
+                    break;
+                }
+                _ => return Err(Box::new(DError::InvalidNode(s))),
+            }
+        }
+
+        Ok(())
+    }
+}
+
+struct NodeRefParseState {
+    reading_pos: bool,
+    pos: usize,
+    child_id: usize,
+}
+
+impl NodeRefParseState {
+    fn new() -> Self {
+        Self {
+            reading_pos: true,
+            pos: 0,
+            child_id: 0,
+        }
+    }
+
+    fn ch_done(&mut self) {
+        // ch, pos, same diff
+        self.reading_pos = false;
+    }
+
+    fn push_digit(&mut self, digit: usize) {
+        if self.reading_pos {
+            self.pos = self.pos * 10 + digit;
+        } else {
+            self.child_id = self.child_id * 10 + digit;
+        }
+    }
+
+    fn commit(self, node: &mut Node, nodes: &HashMap<usize, Rc<Node>>) -> Result<(), DError> {
+        println!("FOUND {} -> {}", self.pos, self.child_id);
+        match nodes.get(&self.child_id) {
+            Some(child) => {
+                node.children[self.pos] = Some(child.clone());
+                Ok(())
+            }
+            None => Err(DError::DanglingPointer(self.child_id)),
         }
     }
 }
@@ -320,6 +510,19 @@ mod test {
         check_test_words(&dict);
     }
 
+    #[test]
+    fn rw_dict() {
+        let dict = make_test_dictionary(false);
+
+        let mut w = Vec::new();
+        dict.save(&mut w).unwrap();
+
+        let mut r = w.as_slice();
+        let dict = super::Dictionary::from(&mut r).unwrap();
+
+        check_test_words(&dict);
+    }
+
     fn make_some_words(n: usize, node: &super::Node) -> Vec<String> {
         let mut res = vec![];
         if node.terminal {
@@ -341,3 +544,33 @@ mod test {
         res
     }
 }
+
+#[derive(Debug)]
+enum DError {
+    NoNodesInInput,
+    InvalidNode(Vec<u8>),
+    DanglingPointer(usize),
+}
+
+impl std::fmt::Display for DError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            DError::NoNodesInInput => write!(fmt, "no nodes in input"),
+            DError::InvalidNode(s) => {
+                write!(
+                    fmt,
+                    "invalid node '{}'",
+                    match std::str::from_utf8(&s) {
+                        Ok(s) => s,
+                        Err(_) => "(unprintable)",
+                    }
+                )
+            }
+            DError::DanglingPointer(child_id) => {
+                write!(fmt, "node has dangling pointer to {}", child_id)
+            }
+        }
+    }
+}
+
+impl std::error::Error for DError {}

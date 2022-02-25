@@ -1,20 +1,32 @@
 use serde::de::{Deserializer, MapAccess, Visitor};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::fs::read_to_string;
+use std::fs::{read_to_string, File};
+use std::io::{BufRead, BufReader, BufWriter};
 use std::rc::Rc;
 
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
 // and https://github.com/sile/rust-dawg
+
+const JSON_DICT: &'static str = "OWL2.json";
+const DICT: &'static str = "cached.dict";
 
 const DEBUG: bool = false;
 
 pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     use std::time::Instant;
 
+    let t = Instant::now();
+    let read_res = read();
+    report_time("read_dict", t);
+    match read_res {
+        Ok(dict) => return Ok(dict),
+        Err(err) => println!("read dictionary: {}", err),
+    };
+
     // TODO - cache this to save ~ 0.5s
     let t = Instant::now();
-    let j = read_to_string("OWL2.json")?;
+    let j = read_to_string(JSON_DICT)?;
     report_time("read_to_string", t);
 
     let t = Instant::now();
@@ -33,7 +45,24 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     let ret = builder.into_dict(DEBUG);
     report_time("into_dict", t);
 
+    let t = Instant::now();
+    if let Err(err) = dump(&ret) {
+        println!("error saving dictionary: {}", err);
+    }
+    report_time("save_dict", t);
+
     Ok(ret)
+}
+
+fn read() -> Result<Dictionary, Box<dyn Error>> {
+    let f = File::open(DICT)?;
+    let mut f = BufReader::new(f);
+    Dictionary::from(&mut f)
+}
+
+fn dump(dict: &Dictionary) -> std::io::Result<()> {
+    let mut f = BufWriter::new(File::create(DICT)?);
+    dict.save(&mut f)
 }
 
 const REPORT_TIME: bool = true;
@@ -231,7 +260,7 @@ impl Dictionary {
         self.root.save(w, &mut written)
     }
 
-    fn from<R: std::io::BufRead>(r: &mut R) -> Result<Self, Box<dyn Error>> {
+    fn from<R: BufRead>(r: &mut R) -> Result<Self, Box<dyn Error>> {
         let mut nodes = HashMap::new();
         let mut root = None;
         while let Some(node) = Node::from(r, &mut nodes)? {
@@ -295,7 +324,7 @@ impl Node {
         Ok(())
     }
 
-    fn from<R: std::io::BufRead>(
+    fn from<R: BufRead>(
         r: &mut R,
         nodes: &mut HashMap<usize, Rc<Node>>,
     ) -> Result<Option<Self>, Box<dyn Error>> {
@@ -304,7 +333,7 @@ impl Node {
         if n == 0 {
             return Ok(None);
         }
-        println!("READ '{}'", std::str::from_utf8(&data).unwrap());
+        //println!("READ '{}'", std::str::from_utf8(&data).unwrap());
         let mut res = Self::new();
         res.parse(data, nodes)?;
         nodes.insert(res.id, Rc::new(res.clone()));
@@ -391,12 +420,10 @@ impl Node {
                 }
                 Some(b' ') => {
                     st.commit(self, nodes)?;
-                    println!("TIME TO DO THE NEXT ONE");
                     st = NodeRefParseState::new()
                 }
                 Some(b';') => {
                     st.commit(self, nodes)?;
-                    println!("ALL DONE");
                     break;
                 }
                 _ => return Err(Box::new(DError::InvalidNode(s))),
@@ -436,7 +463,6 @@ impl NodeRefParseState {
     }
 
     fn commit(self, node: &mut Node, nodes: &HashMap<usize, Rc<Node>>) -> Result<(), DError> {
-        println!("FOUND {} -> {}", self.pos, self.child_id);
         match nodes.get(&self.child_id) {
             Some(child) => {
                 node.children[self.pos] = Some(child.clone());

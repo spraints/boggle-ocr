@@ -24,49 +24,33 @@ pub fn open_json(path: &str) -> Result<Dictionary, Box<dyn Error>> {
     Ok(builder.into_dict(false))
 }
 
-pub fn open_magic() -> Result<Dictionary, Box<dyn Error>> {
-    use std::time::Instant;
+pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
+    let compile_path = match path {
+        Some(ref p) => &p,
+        None => DICT,
+    };
+    if let Ok(dict) = read(compile_path) {
+        return Ok(dict);
+    }
 
-    let t = Instant::now();
-    let read_res = read_magic();
-    report_time("read_dict", t);
-    match read_res {
-        Ok(dict) => return Ok(dict),
-        Err(err) => println!("read dictionary: {}", err),
+    let json_path = match path {
+        Some(ref p) => &p,
+        None => JSON_DICT,
     };
 
-    // TODO - cache this to save ~ 0.5s
-    let t = Instant::now();
-    let j = read_to_string(JSON_DICT)?;
-    report_time("read_to_string", t);
-
-    let t = Instant::now();
+    let j = read_to_string(json_path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
     let map = de.deserialize_map(OWLVisitor::new())?;
-    report_time("deserialize_map", t);
-
-    let t = Instant::now();
-    for (n, (word, _)) in map.into_iter().enumerate() {
-        builder.insert(word, DEBUG && n < 10);
+    for (word, _) in map {
+        builder.insert(word, false);
     }
-    report_time("insertion", t);
 
-    let t = Instant::now();
-    let ret = builder.into_dict(DEBUG);
-    report_time("into_dict", t);
-
-    let t = Instant::now();
-    if let Err(err) = dump(&ret) {
-        println!("error saving dictionary: {}", err);
-    }
-    report_time("save_dict", t);
-
-    Ok(ret)
+    Ok(builder.into_dict(DEBUG))
 }
 
-fn read_magic() -> Result<Dictionary, Box<dyn Error>> {
-    let f = File::open(DICT)?;
+fn read(path: &str) -> Result<Dictionary, Box<dyn Error>> {
+    let f = File::open(path)?;
     let mut f = BufReader::new(f);
     Dictionary::from(&mut f)
 }

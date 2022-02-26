@@ -3,9 +3,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
 
-pub fn find_all_in_file(path: &str) -> Result<(), Box<dyn Error>> {
-    let dict = dictionary::open_magic()?;
-
+pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), Box<dyn Error>> {
     let raw_board = read_to_string(path)?;
     let board = boggled(&raw_board)?;
 

@@ -17,6 +17,7 @@ fn main() {
     if let Err(err) = match options::parse() {
         Boggle(opts) => boggle(opts),
         Compile(opts) => compile(opts),
+        OCR(opts) => dump(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);
@@ -26,8 +27,7 @@ fn main() {
 type Res = Result<(), Box<dyn std::error::Error>>;
 
 fn boggle(opts: options::BoggleOptions) -> Res {
-    dump(&opts.board).unwrap();
-    Ok(())
+    wordsearch::find_all_in_file(&opts.board)
 }
 
 fn compile(opts: options::CompileOptions) -> Res {
@@ -56,10 +56,8 @@ fn compile(opts: options::CompileOptions) -> Res {
     Ok(())
 }
 
-fn dump(path: &str) -> Result<(), Box<dyn Error>> {
-    if path.ends_with(".txt") {
-        return wordsearch::find_all_in_file(path);
-    }
+fn dump(opts: options::OCROptions) -> Result<(), Box<dyn Error>> {
+    let path = &opts.input;
 
     let img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;
 

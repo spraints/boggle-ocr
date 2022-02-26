@@ -18,6 +18,9 @@ pub enum Commands {
 
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
+
+    /// Try my OCR code. This doesn't really do anything yet.
+    OCR(OCROptions),
 }
 
 #[derive(Args)]
@@ -40,4 +43,10 @@ pub struct CompileOptions {
 
     /// The compiled output file.
     pub output: String,
+}
+
+#[derive(Args)]
+pub struct OCROptions {
+    /// The input image file.
+    pub input: String,
 }

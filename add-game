@@ -9,6 +9,6 @@ f=boards/${d}.txt
 
 mkdir -p boards
 vi $f
-make $e cached.dict
+make
 set -x
 exec $e boggle $f

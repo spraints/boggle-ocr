@@ -13,11 +13,22 @@ const DICT: &'static str = "cached.dict";
 
 const DEBUG: bool = false;
 
-pub fn open() -> Result<Dictionary, Box<dyn Error>> {
+pub fn open_json(path: &str) -> Result<Dictionary, Box<dyn Error>> {
+    let j = read_to_string(path)?;
+    let mut de = serde_json::Deserializer::from_str(&j);
+    let mut builder = DictionaryBuilder::new();
+    let map = de.deserialize_map(OWLVisitor::new())?;
+    for (word, _) in map {
+        builder.insert(word, false);
+    }
+    Ok(builder.into_dict(false))
+}
+
+pub fn open_magic() -> Result<Dictionary, Box<dyn Error>> {
     use std::time::Instant;
 
     let t = Instant::now();
-    let read_res = read();
+    let read_res = read_magic();
     report_time("read_dict", t);
     match read_res {
         Ok(dict) => return Ok(dict),
@@ -54,7 +65,7 @@ pub fn open() -> Result<Dictionary, Box<dyn Error>> {
     Ok(ret)
 }
 
-fn read() -> Result<Dictionary, Box<dyn Error>> {
+fn read_magic() -> Result<Dictionary, Box<dyn Error>> {
     let f = File::open(DICT)?;
     let mut f = BufReader::new(f);
     Dictionary::from(&mut f)
@@ -255,7 +266,7 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    fn save<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
+    pub fn save<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
         let mut written = HashSet::new();
         self.root.save(w, &mut written)
     }

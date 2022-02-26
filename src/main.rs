@@ -1,8 +1,9 @@
-use clap::Parser;
 use opencv::core::{Mat, Point, Vec3i, BORDER_DEFAULT};
 use opencv::types::VectorOfVec3i;
 use opencv::{imgcodecs, imgproc};
 use std::error::Error;
+use std::fs::OpenOptions;
+use std::io::BufWriter;
 
 pub mod dictionary;
 mod options;
@@ -13,18 +14,46 @@ mod wordsearch;
 
 fn main() {
     use options::Commands::*;
-    match options::parse() {
+    if let Err(err) = match options::parse() {
         Boggle(opts) => boggle(opts),
         Compile(opts) => compile(opts),
-    };
+    } {
+        println!("error: {}", err);
+        std::process::exit(1);
+    }
 }
 
-fn boggle(opts: options::BoggleOptions) {
+type Res = Result<(), Box<dyn std::error::Error>>;
+
+fn boggle(opts: options::BoggleOptions) -> Res {
     dump(&opts.board).unwrap();
+    Ok(())
 }
 
-fn compile(opts: options::CompileOptions) {
-    todo!();
+fn compile(opts: options::CompileOptions) -> Res {
+    let mut fo = OpenOptions::new();
+    fo.write(true).truncate(true);
+    if opts.overwrite {
+        fo.create(true);
+    } else {
+        fo.create_new(true);
+    }
+    let outf = match fo.open(&opts.output) {
+        Ok(f) => f,
+        Err(err) => match err.kind() {
+            std::io::ErrorKind::AlreadyExists => {
+                return Err(Box::new(GenericError(format!(
+                    "{} already exists, use --overwrite to replace it",
+                    opts.output
+                ))))
+            }
+            _ => return Err(Box::new(GenericError(format!("{}: {}", opts.output, err)))),
+        },
+    };
+    let mut outf = BufWriter::new(outf);
+    let dict = dictionary::open_json(&opts.input)?;
+    dict.save(&mut outf)?;
+    Ok(())
 }
 
 fn dump(path: &str) -> Result<(), Box<dyn Error>> {
@@ -121,4 +150,15 @@ fn dump(path: &str) -> Result<(), Box<dyn Error>> {
     cv2.waitKey()
          */
     Ok(())
+}
+
+#[derive(Debug)]
+struct GenericError(String);
+
+impl std::error::Error for GenericError {}
+
+impl std::fmt::Display for GenericError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", &self.0)
+    }
 }

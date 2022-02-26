@@ -33,11 +33,11 @@ pub struct BoggleOptions {
 #[derive(Args)]
 pub struct CompileOptions {
     #[clap(short = 'f', long)]
-    overwrite: bool,
+    pub overwrite: bool,
 
     /// The input JSON file.
-    input: String,
+    pub input: String,
 
     /// The compiled output file.
-    output: String,
+    pub output: String,
 }

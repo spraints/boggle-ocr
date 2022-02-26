@@ -1,5 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 
+// Best docs: https://github.com/clap-rs/clap/tree/v3.0.14/examples/tutorial_derive
+
 pub fn parse() -> Commands {
     Cli::parse().command
 }
@@ -19,8 +21,11 @@ pub enum Commands {
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
 
-    /// Try my OCR code. This doesn't really do anything yet.
+    /// Try my OCR code, doesn't really do anything yet.
     Ocr(OcrOptions),
+
+    /// Run a web server.
+    Server(ServerOptions),
 }
 
 #[derive(Args)]
@@ -49,4 +54,15 @@ pub struct CompileOptions {
 pub struct OcrOptions {
     /// The input image file.
     pub input: String,
+}
+
+#[derive(Args)]
+pub struct ServerOptions {
+    /// Address to listen on.
+    #[clap(short, long, default_value_t = String::from("127.0.0.1:8000"))]
+    pub addr: String,
+
+    /// JSON dictionary to use.
+    #[clap(short, long, default_value_t = String::from("OWL2.json"))]
+    pub dict: String,
 }

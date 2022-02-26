@@ -1,7 +1,7 @@
 .PHONY: all
 all: target/release/boggle-ocr cached.dict
 
-SRCS = src/wordsearch.rs src/dictionary.rs src/main.rs src/options.rs
+SRCS = src/wordsearch.rs src/dictionary.rs src/main.rs src/options.rs src/server.rs
 
 target/release/boggle-ocr: $(SRCS) Cargo.toml
 	cargo build --release

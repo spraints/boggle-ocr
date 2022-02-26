@@ -7,6 +7,7 @@ use std::io::BufWriter;
 
 pub mod dictionary;
 mod options;
+mod server;
 mod wordsearch;
 
 // detect dice: https://stackoverflow.com/questions/55169645/square-detection-in-image
@@ -18,6 +19,7 @@ fn main() {
         Boggle(opts) => boggle(opts),
         Compile(opts) => compile(opts),
         Ocr(opts) => dump(opts),
+        Server(opts) => server::serve(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);

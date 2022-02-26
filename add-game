@@ -11,4 +11,4 @@ mkdir -p boards
 vi $f
 make $e
 set -x
-exec $e $f
+exec $e boggle $f

@@ -1,21 +1,30 @@
+use clap::Parser;
 use opencv::core::{Mat, Point, Vec3i, BORDER_DEFAULT};
 use opencv::types::VectorOfVec3i;
 use opencv::{imgcodecs, imgproc};
-use std::env;
 use std::error::Error;
 
 pub mod dictionary;
+mod options;
 mod wordsearch;
 
 // detect dice: https://stackoverflow.com/questions/55169645/square-detection-in-image
 // opencv rust: https://docs.rs/opencv/0.62.0/opencv/index.html
 
 fn main() {
-    let mut args = env::args().skip(1);
-    match args.next() {
-        None => println!("Usage: boggle-ocr IMAGE"),
-        Some(arg) => dump(&arg).unwrap(),
+    use options::Commands::*;
+    match options::parse() {
+        Boggle(opts) => boggle(opts),
+        Compile(opts) => compile(opts),
     };
+}
+
+fn boggle(opts: options::BoggleOptions) {
+    dump(&opts.board).unwrap();
+}
+
+fn compile(opts: options::CompileOptions) {
+    todo!();
 }
 
 fn dump(path: &str) -> Result<(), Box<dyn Error>> {

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+e=target/release/boggle-ocr
+
+d=$(date +%Y-%m-%d-%H-%M-%S)
+f=boards/${d}.txt
+
+mkdir -p boards
+vi $f
+make $e
+set -x
+exec $e $f

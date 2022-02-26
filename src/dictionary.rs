@@ -2,14 +2,14 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{read_to_string, File};
-use std::io::{BufRead, BufReader, BufWriter};
+use std::io::{BufRead, BufReader};
 use std::rc::Rc;
 
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
 // and https://github.com/sile/rust-dawg
 
-const JSON_DICT: &'static str = "OWL2.json";
-const DICT: &'static str = "cached.dict";
+const JSON_DICT: &str = "OWL2.json";
+const DICT: &str = "cached.dict";
 
 const DEBUG: bool = false;
 
@@ -26,7 +26,7 @@ pub fn open_json(path: &str) -> Result<Dictionary, Box<dyn Error>> {
 
 pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
     let compile_path = match path {
-        Some(ref p) => &p,
+        Some(ref p) => p,
         None => DICT,
     };
     if let Ok(dict) = read(compile_path) {
@@ -34,7 +34,7 @@ pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
     }
 
     let json_path = match path {
-        Some(ref p) => &p,
+        Some(ref p) => p,
         None => JSON_DICT,
     };
 
@@ -53,11 +53,6 @@ fn read(path: &str) -> Result<Dictionary, Box<dyn Error>> {
     let f = File::open(path)?;
     let mut f = BufReader::new(f);
     Dictionary::from(&mut f)
-}
-
-fn dump(dict: &Dictionary) -> std::io::Result<()> {
-    let mut f = BufWriter::new(File::create(DICT)?);
-    dict.save(&mut f)
 }
 
 const REPORT_TIME: bool = true;
@@ -304,10 +299,8 @@ impl Node {
         if !seen.insert(self.id) {
             return Ok(());
         }
-        for child in &self.children {
-            if let Some(child) = child {
-                child.save(w, seen)?;
-            }
+        for child in self.children.iter().flatten() {
+            child.save(w, seen)?;
         }
         write!(w, "[{}{}]", self.id, if self.terminal { "!" } else { "" })?;
         for (i, child) in self.children.iter().enumerate() {
@@ -348,7 +341,7 @@ impl Node {
 
         loop {
             match c.next() {
-                Some(b'0') => self.id = self.id * 10,
+                Some(b'0') => self.id *= 10,
                 Some(b'1') => self.id = self.id * 10 + 1,
                 Some(b'2') => self.id = self.id * 10 + 2,
                 Some(b'3') => self.id = self.id * 10 + 3,
@@ -581,10 +574,7 @@ impl std::fmt::Display for DError {
                 write!(
                     fmt,
                     "invalid node '{}'",
-                    match std::str::from_utf8(&s) {
-                        Ok(s) => s,
-                        Err(_) => "(unprintable)",
-                    }
+                    std::str::from_utf8(s).unwrap_or("(unprintable)"),
                 )
             }
             DError::DanglingPointer(child_id) => {

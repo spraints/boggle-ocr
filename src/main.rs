@@ -17,7 +17,7 @@ fn main() {
     if let Err(err) = match options::parse() {
         Boggle(opts) => boggle(opts),
         Compile(opts) => compile(opts),
-        OCR(opts) => dump(opts),
+        Ocr(opts) => dump(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);
@@ -57,7 +57,7 @@ fn compile(opts: options::CompileOptions) -> Res {
     Ok(())
 }
 
-fn dump(opts: options::OCROptions) -> Result<(), Box<dyn Error>> {
+fn dump(opts: options::OcrOptions) -> Result<(), Box<dyn Error>> {
     let path = &opts.input;
 
     let img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;

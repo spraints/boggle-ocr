@@ -20,7 +20,7 @@ pub enum Commands {
     Compile(CompileOptions),
 
     /// Try my OCR code. This doesn't really do anything yet.
-    OCR(OCROptions),
+    Ocr(OcrOptions),
 }
 
 #[derive(Args)]
@@ -46,7 +46,7 @@ pub struct CompileOptions {
 }
 
 #[derive(Args)]
-pub struct OCROptions {
+pub struct OcrOptions {
     /// The input image file.
     pub input: String,
 }

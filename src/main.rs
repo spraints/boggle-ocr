@@ -19,7 +19,7 @@ fn main() {
         Boggle(opts) => boggle(opts),
         Compile(opts) => compile(opts),
         Ocr(opts) => dump(opts),
-        Server(opts) => server::serve(opts),
+        Server(opts) => serve(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);
@@ -57,6 +57,11 @@ fn compile(opts: options::CompileOptions) -> Res {
     let dict = dictionary::open_json(&opts.input)?;
     dict.save(&mut outf)?;
     Ok(())
+}
+
+fn serve(opts: options::ServerOptions) -> Result<(), Box<dyn Error>> {
+    let dict = dictionary::open_json(&opts.dict)?;
+    server::serve(&opts.addr, dict)
 }
 
 fn dump(opts: options::OcrOptions) -> Result<(), Box<dyn Error>> {

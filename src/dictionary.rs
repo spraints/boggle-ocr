@@ -273,9 +273,6 @@ pub struct Node {
     children: Vec<Option<Arc<Node>>>,
 }
 
-const Q: usize = 16;
-const U: usize = 20;
-
 impl Node {
     fn new() -> Self {
         Self {
@@ -287,13 +284,7 @@ impl Node {
 
     pub fn lookup(&self, ch: usize) -> Option<&Node> {
         match self.children.get(ch) {
-            Some(Some(rc_node)) => {
-                if ch == Q {
-                    rc_node.lookup(U)
-                } else {
-                    Some(rc_node)
-                }
-            }
+            Some(Some(rc_node)) => Some(&rc_node),
             _ => None,
         }
     }

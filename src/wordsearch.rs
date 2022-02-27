@@ -134,8 +134,14 @@ fn visit(
     }
 }
 
+const Q: usize = 16;
+const U: usize = 20;
+
 fn lookup(node: &dictionary::Node, ch: usize) -> Option<&dictionary::Node> {
-    node.lookup(ch)
+    match node.lookup(ch) {
+        Some(child) if ch == Q => child.lookup(U),
+        res => res,
+    }
 }
 
 fn mark_visit(visited: Visited, pos: Pos) -> Visited {

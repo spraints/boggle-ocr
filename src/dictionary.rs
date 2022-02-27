@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{read_to_string, File};
 use std::io::{BufRead, BufReader};
-use std::rc::Rc;
+use std::sync::Arc;
 
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
 // and https://github.com/sile/rust-dawg
@@ -13,15 +13,17 @@ const DICT: &str = "cached.dict";
 
 const DEBUG: bool = false;
 
-pub fn open_json(path: &str) -> Result<Dictionary, Box<dyn Error>> {
+pub fn open_json(path: &str) -> Result<(Dictionary, HashMap<String, Vec<String>>), Box<dyn Error>> {
     let j = read_to_string(path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
+    let mut defs = HashMap::new();
     let map = de.deserialize_map(OWLVisitor::new())?;
-    for (word, _) in map {
-        builder.insert(word, false);
+    for (word, definitions) in map {
+        builder.insert(&word, false);
+        defs.insert(word, definitions);
     }
-    Ok(builder.into_dict(false))
+    Ok((builder.into_dict(false), defs))
 }
 
 pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
@@ -43,7 +45,7 @@ pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
     let mut builder = DictionaryBuilder::new();
     let map = de.deserialize_map(OWLVisitor::new())?;
     for (word, _) in map {
-        builder.insert(word, false);
+        builder.insert(&word, false);
     }
 
     Ok(builder.into_dict(DEBUG))
@@ -82,14 +84,14 @@ impl DictionaryBuilder {
         }
     }
 
-    fn insert(&mut self, word: String, debug: bool) {
+    fn insert(&mut self, word: &str, debug: bool) {
         self.words += 1;
 
         if debug {
             println!("inserting '{}'", word);
         }
 
-        let common_prefix = self.common_prefix(&word);
+        let common_prefix = self.common_prefix(word);
         if debug {
             println!("  common prefix: {}", common_prefix);
         }
@@ -113,14 +115,14 @@ impl DictionaryBuilder {
 
         self.nodes[node_idx].terminal = true;
 
-        self.previous_word = Some(word);
+        self.previous_word = Some(String::from(word));
     }
 
     fn into_dict(mut self, debug: bool) -> Dictionary {
         self.minimize(0, false);
 
         let sz1 = self.nodes.len();
-        let mut nodes = HashMap::new(); // idx -> Rc<Node>
+        let mut nodes = HashMap::new(); // idx -> Arc<Node>
         let root = self.map(0, &mut nodes);
         if debug {
             println!(
@@ -133,7 +135,7 @@ impl DictionaryBuilder {
         Dictionary { root }
     }
 
-    fn map(&self, idx: usize, nodes: &mut HashMap<usize, Rc<Node>>) -> Node {
+    fn map(&self, idx: usize, nodes: &mut HashMap<usize, Arc<Node>>) -> Node {
         let mut node = Node::new();
         let nb = &self.nodes[idx];
         node.terminal = nb.terminal;
@@ -143,7 +145,7 @@ impl DictionaryBuilder {
                 if let Some(child) = nodes.get(child_idx) {
                     node.children[i] = Some(child.clone());
                 } else {
-                    let child = Rc::new(self.map(*child_idx, nodes));
+                    let child = Arc::new(self.map(*child_idx, nodes));
                     nodes.insert(*child_idx, child.clone());
                     node.children[i] = Some(child);
                 }
@@ -240,6 +242,7 @@ impl NodeBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct Dictionary {
     pub root: Node,
 }
@@ -267,7 +270,7 @@ impl Dictionary {
 pub struct Node {
     pub terminal: bool,
     id: usize,
-    children: Vec<Option<Rc<Node>>>,
+    children: Vec<Option<Arc<Node>>>,
 }
 
 const Q: usize = 16;
@@ -314,7 +317,7 @@ impl Node {
 
     fn from<R: BufRead>(
         r: &mut R,
-        nodes: &mut HashMap<usize, Rc<Node>>,
+        nodes: &mut HashMap<usize, Arc<Node>>,
     ) -> Result<Option<Self>, Box<dyn Error>> {
         let mut data = vec![];
         let n = r.read_until(b';', &mut data)?;
@@ -324,14 +327,14 @@ impl Node {
         //println!("READ '{}'", std::str::from_utf8(&data).unwrap());
         let mut res = Self::new();
         res.parse(data, nodes)?;
-        nodes.insert(res.id, Rc::new(res.clone()));
+        nodes.insert(res.id, Arc::new(res.clone()));
         Ok(Some(res))
     }
 
     fn parse(
         &mut self,
         s: Vec<u8>,
-        nodes: &mut HashMap<usize, Rc<Node>>,
+        nodes: &mut HashMap<usize, Arc<Node>>,
     ) -> Result<(), Box<dyn Error>> {
         let mut c = s.iter();
         match c.next() {
@@ -450,7 +453,7 @@ impl NodeRefParseState {
         }
     }
 
-    fn commit(self, node: &mut Node, nodes: &HashMap<usize, Rc<Node>>) -> Result<(), DError> {
+    fn commit(self, node: &mut Node, nodes: &HashMap<usize, Arc<Node>>) -> Result<(), DError> {
         match nodes.get(&self.child_id) {
             Some(child) => {
                 node.children[self.pos] = Some(child.clone());
@@ -500,12 +503,12 @@ impl<'de> Visitor<'de> for OWLVisitor {
 mod test {
     fn make_test_dictionary(debug: bool) -> super::Dictionary {
         let mut builder = super::DictionaryBuilder::new();
-        builder.insert(String::from("cat"), debug);
-        builder.insert(String::from("cats"), debug);
-        builder.insert(String::from("fact"), debug);
-        builder.insert(String::from("facts"), debug);
-        builder.insert(String::from("facet"), debug);
-        builder.insert(String::from("facets"), debug);
+        builder.insert("cat", debug);
+        builder.insert("cats", debug);
+        builder.insert("fact", debug);
+        builder.insert("facts", debug);
+        builder.insert("facet", debug);
+        builder.insert("facets", debug);
         builder.into_dict(debug)
     }
 

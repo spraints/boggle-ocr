@@ -13,7 +13,12 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
 
     let total_score: usize = words.iter().map(|w| score(w)).sum();
     println!("{}", raw_board);
-    println!("found {} words, {} points", words.len(), total_score);
+    println!(
+        "found {} words, {} points, {:.2} per word",
+        words.len(),
+        total_score,
+        total_score as f32 / words.len() as f32,
+    );
     println!("best words:");
     let mut scored_words: Vec<(usize, String)> =
         words.into_iter().map(|w| (score(&w), w)).collect();

@@ -4,7 +4,8 @@ all: target/release/boggle-ocr cached.dict
 SRCS = src/wordsearch.rs src/dictionary.rs src/main.rs src/options.rs src/server.rs
 
 target/release/boggle-ocr: $(SRCS) Cargo.toml
-	cargo build --release
+	env DYLD_FALLBACK_LIBRARY_PATH="$(xcode-select --print-path)/Toolchains/XcodeDefault.xctoolchain/usr/lib/" \
+	  cargo build --release
 
 cached.dict: OWL2.json target/release/boggle-ocr
 	target/release/boggle-ocr compile -f OWL2.json cached.dict

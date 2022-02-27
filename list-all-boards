@@ -5,5 +5,5 @@ set -e
 EXE=target/release/boggle-ocr
 make $EXE
 for board in boards/*; do
-  $EXE $board | grep ^found | sed -e "s|^|$board |"
+  $EXE boggle $board | grep ^found | sed -e "s|^|$board |"
 done

@@ -1,26 +1,41 @@
 use crate::dictionary::Dictionary;
+use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::Display;
 use std::net::ToSocketAddrs;
 
-type GenericError = Box<dyn std::error::Error>;
-
-pub fn serve<A: ToSocketAddrs + Display>(addr: A, dict: Dictionary) -> Result<(), GenericError> {
+pub fn serve<A: ToSocketAddrs + Display>(
+    addr: A,
+    dict: Dictionary,
+    defs: HashMap<String, Vec<String>>,
+) -> Result<(), Box<dyn Error>> {
     println!("serving on {}", addr);
-    async_serve(addr, dict);
-    Ok(())
+    async_serve(addr, Data { dict, defs })
+}
+
+struct Data {
+    dict: Dictionary,
+    defs: HashMap<String, Vec<String>>,
 }
 
 #[actix_web::main]
-async fn async_serve<A: ToSocketAddrs>(addr: A, dict: Dictionary) {
-    HttpServer::new(|| App::new().route("/word", web::get().to(lookup_word)))
-        .bind(addr)
-        .unwrap()
-        .run()
-        .await
-        .unwrap();
+async fn async_serve<A: ToSocketAddrs>(addr: A, data: Data) -> Result<(), Box<dyn Error>> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    let st = web::Data::new(data);
+    HttpServer::new(move || {
+        App::new()
+            .app_data(st.clone())
+            .wrap(Logger::default())
+            .route("/word", web::get().to(lookup_word))
+    })
+    .bind(addr)?
+    .run()
+    .await?;
+    Ok(())
 }
 
-async fn lookup_word() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+async fn lookup_word(st: web::Data<Data>) -> impl Responder {
+    HttpResponse::Ok().body(format!("Hey there! {:?}", st.defs.get("oversize")))
 }

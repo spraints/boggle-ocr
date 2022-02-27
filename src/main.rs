@@ -54,14 +54,14 @@ fn compile(opts: options::CompileOptions) -> Res {
         },
     };
     let mut outf = BufWriter::new(outf);
-    let dict = dictionary::open_json(&opts.input)?;
+    let (dict, _) = dictionary::open_json(&opts.input)?;
     dict.save(&mut outf)?;
     Ok(())
 }
 
 fn serve(opts: options::ServerOptions) -> Result<(), Box<dyn Error>> {
-    let dict = dictionary::open_json(&opts.dict)?;
-    server::serve(&opts.addr, dict)
+    let (dict, defs) = dictionary::open_json(&opts.dict)?;
+    server::serve(&opts.addr, dict, defs)
 }
 
 fn dump(opts: options::OcrOptions) -> Result<(), Box<dyn Error>> {

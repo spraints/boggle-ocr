@@ -13,7 +13,9 @@ const DICT: &str = "cached.dict";
 
 const DEBUG: bool = false;
 
-pub fn open_json(path: &str) -> Result<(Dictionary, HashMap<String, Vec<String>>), Box<dyn Error>> {
+pub type Definitions = HashMap<String, Vec<String>>;
+
+pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
     let j = read_to_string(path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
@@ -284,7 +286,7 @@ impl Node {
 
     pub fn lookup(&self, ch: usize) -> Option<&Node> {
         match self.children.get(ch) {
-            Some(Some(rc_node)) => Some(&rc_node),
+            Some(Some(rc_node)) => Some(rc_node),
             _ => None,
         }
     }

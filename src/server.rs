@@ -1,7 +1,6 @@
-use crate::dictionary::Dictionary;
+use crate::dictionary::{Definitions, Dictionary};
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
 use std::net::ToSocketAddrs;
@@ -9,7 +8,7 @@ use std::net::ToSocketAddrs;
 pub fn serve<A: ToSocketAddrs + Display>(
     addr: A,
     dict: Dictionary,
-    defs: HashMap<String, Vec<String>>,
+    defs: Definitions,
 ) -> Result<(), Box<dyn Error>> {
     println!("serving on {}", addr);
     async_serve(addr, Data { dict, defs })
@@ -17,7 +16,7 @@ pub fn serve<A: ToSocketAddrs + Display>(
 
 struct Data {
     dict: Dictionary,
-    defs: HashMap<String, Vec<String>>,
+    defs: Definitions,
 }
 
 #[actix_web::main]

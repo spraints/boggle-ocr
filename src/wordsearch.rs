@@ -110,7 +110,7 @@ fn visit(
 ) {
     let (i, j) = pos;
     let ch = board[i][j];
-    if let Some(next_node) = node.lookup(ch) {
+    if let Some(next_node) = lookup(node, ch) {
         scratch.push(ch);
         if next_node.terminal && scratch.len() > 2 {
             res.insert(scratch.clone());
@@ -132,6 +132,10 @@ fn visit(
         }
         scratch.pop();
     }
+}
+
+fn lookup(node: &dictionary::Node, ch: usize) -> Option<&dictionary::Node> {
+    node.lookup(ch)
 }
 
 fn mark_visit(visited: Visited, pos: Pos) -> Visited {

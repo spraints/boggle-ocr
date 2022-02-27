@@ -1,6 +1,8 @@
 use crate::dictionary::{Definitions, Dictionary};
+use actix_web::http::header::ContentType;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use serde::Serialize;
 use std::error::Error;
 use std::fmt::Display;
 use std::net::ToSocketAddrs;
@@ -35,6 +37,19 @@ async fn async_serve<A: ToSocketAddrs>(addr: A, data: Data) -> Result<(), Box<dy
     Ok(())
 }
 
-async fn lookup_word(st: web::Data<Data>) -> impl Responder {
-    HttpResponse::Ok().body(format!("Hey there! {:?}", st.defs.get("oversize")))
+#[derive(Serialize)]
+struct LookupWordResult {
+    definitions: Vec<String>,
+}
+
+async fn lookup_word(st: web::Data<Data>, req: HttpRequest) -> impl Responder {
+    let word = "whatever";
+    let definitions = match st.defs.get(word) {
+        Some(d) => d.clone(),
+        None => vec![],
+    };
+    let body = serde_json::to_string(&LookupWordResult { definitions }).unwrap();
+    HttpResponse::Ok()
+        .content_type(ContentType::json())
+        .body(body)
 }

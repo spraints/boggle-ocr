@@ -11,7 +11,7 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
     let words = find_words(&dict, &board);
     dictionary::report_time("find_words", t);
 
-    let total_score: usize = words.iter().map(|w| score(w)).sum();
+    let total_score: u32 = words.iter().map(|w| score(w)).sum();
     println!("{}", raw_board);
     println!(
         "found {} words, {} points, {:.2} per word",
@@ -20,8 +20,7 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
         total_score as f32 / words.len() as f32,
     );
     println!("best words:");
-    let mut scored_words: Vec<(usize, String)> =
-        words.into_iter().map(|w| (score(&w), w)).collect();
+    let mut scored_words: Vec<(u32, String)> = words.into_iter().map(|w| (score(&w), w)).collect();
     scored_words.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
     for (s, w) in scored_words.into_iter().take(20) {
         println!("  {:2} {}", s, w);
@@ -30,7 +29,69 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
     Ok(())
 }
 
-fn score(word: &str) -> usize {
+pub fn find_boggle_words(board: &[&str], dict: &dictionary::Dictionary) -> Vec<Word> {
+    let board: AnyBoard = board.iter().map(|line| parse_board_line(line)).collect();
+    let total_letters = board.iter().map(|line| line.len()).sum();
+    let mut res = HashSet::new();
+    let mut scratch = Vec::with_capacity(total_letters);
+    let pos_keeper = PositionKeeper::new(&board);
+    for i in 0..board.len() {
+        for j in 0..board[i].len() {
+            let pos = (i, j);
+            visit2(
+                pos,
+                pos_keeper.mark(0, pos),
+                &pos_keeper,
+                &board,
+                &dict.root,
+                &mut res,
+                &mut scratch,
+            );
+        }
+    }
+    let mut res: Vec<Word> = res.into_iter().map(Word::new).collect();
+    res.sort();
+    res
+}
+
+fn parse_board_line(line: &str) -> Vec<usize> {
+    line.chars().map(dictionary::letter_pos).collect()
+}
+
+pub struct Word {
+    pub word: String,
+    pub score: u32,
+}
+
+impl Word {
+    fn new(word: Vec<usize>) -> Self {
+        let w = stringify_word(word);
+        let s = score(&w);
+        Self { word: w, score: s }
+    }
+}
+
+impl PartialOrd<Word> for Word {
+    fn partial_cmp(&self, other: &Word) -> Option<std::cmp::Ordering> {
+        self.word.partial_cmp(&other.word)
+    }
+}
+
+impl Ord for Word {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.word.cmp(&other.word)
+    }
+}
+
+impl PartialEq<Word> for Word {
+    fn eq(&self, other: &Word) -> bool {
+        self.word.eq(&other.word)
+    }
+}
+
+impl Eq for Word {}
+
+fn score(word: &str) -> u32 {
     match word.len() {
         0 | 1 | 2 => 0,
         3 | 4 => 1,
@@ -100,6 +161,81 @@ impl Iterator for QU {
     }
 }
 
+struct PositionKeeper {
+    offsets: Vec<usize>,
+}
+
+impl PositionKeeper {
+    fn new(board: &AnyBoard) -> Self {
+        let mut offsets = vec![0];
+        let mut tot = 0;
+        for line in board {
+            tot += line.len();
+            offsets.push(tot);
+        }
+        Self { offsets }
+    }
+
+    fn mark(&self, visited: Visited, pos: Pos) -> Visited {
+        let (i, j) = pos;
+        let bit = self.offsets[i] + j;
+        visited | (1 << bit)
+    }
+}
+
+fn visit2(
+    pos: Pos,
+    visited: Visited,
+    pk: &PositionKeeper,
+    board: &AnyBoard,
+    node: &dictionary::Node,
+    res: &mut HashSet<Vec<usize>>,
+    scratch: &mut Vec<usize>,
+) {
+    let (i, j) = pos;
+    let ch = board[i][j];
+    if let Some(next_node) = lookup(node, ch) {
+        scratch.push(ch);
+        if next_node.terminal && scratch.len() > 2 {
+            res.insert(scratch.clone());
+        }
+        for di in -1..=1 {
+            for dj in -1..=1 {
+                let ni = di + i as isize;
+                let nj = dj + j as isize;
+                if out_of_bounds(board, ni, nj) {
+                    //println!("({}, {}) -> SKIP ({}, {})", i, j, ni, nj);
+                    continue;
+                }
+                //println!("({}, {}) -> ({}, {})", i, j, ni, nj);
+                let npos = (ni as usize, nj as usize);
+                let nvisited = pk.mark(visited, npos);
+                if nvisited != visited {
+                    visit2(npos, nvisited, pk, board, next_node, res, scratch);
+                }
+            }
+        }
+        scratch.pop();
+    }
+}
+
+fn out_of_bounds(board: &AnyBoard, i: isize, j: isize) -> bool {
+    if i < 0 {
+        return true;
+    }
+    if j < 0 {
+        return true;
+    }
+    let i = i as usize;
+    if i < board.len() {
+        let j = j as usize;
+        if j < board[i].len() {
+            return false;
+        }
+    }
+    true
+}
+
 fn visit(
     pos: Pos,
     visited: Visited,
@@ -152,6 +288,7 @@ fn mark_visit(visited: Visited, pos: Pos) -> Visited {
 type Visited = u32;
 type Pos = (usize, usize);
 type Board = [[usize; 5]; 5];
+type AnyBoard = Vec<Vec<usize>>;
 
 fn boggled(raw: &str) -> Result<Board, WSError> {
     let mut res = [[255; 5]; 5];
@@ -198,3 +335,32 @@ impl std::fmt::Display for WSError {
 }
 
 impl Error for WSError {}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn example() {
+        let dict = build_dictionary(vec!["tenets", "facts", "honey"]);
+        let res =
+            super::find_boggle_words(&vec!["taeyl", "eohak", "yneit", "yteyl", "shaig"], &dict);
+        let words: Vec<String> = res.into_iter().map(|w| w.word).collect();
+        assert_eq!(words, vec!["honey", "tenets"]);
+    }
+
+    #[test]
+    fn example_with_implied_u_after_q() {
+        let dict = build_dictionary(vec!["quit", "quick"]);
+        let res = super::find_boggle_words(&vec!["qic", "xkk"], &dict);
+        let words: Vec<String> = res.into_iter().map(|w| w.word).collect();
+        assert_eq!(words, vec!["quick"]);
+    }
+
+    fn build_dictionary(mut words: Vec<&str>) -> crate::dictionary::Dictionary {
+        words.sort();
+        let mut db = crate::dictionary::DictionaryBuilder::new();
+        for word in words {
+            db.insert(&word, false);
+        }
+        db.into_dict(false)
+    }
+}

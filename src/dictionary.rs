@@ -67,7 +67,7 @@ pub fn report_time(label: &str, t: std::time::Instant) {
     }
 }
 
-struct DictionaryBuilder {
+pub struct DictionaryBuilder {
     previous_word: Option<String>,
     nodes: Vec<NodeBuilder>,
     unchecked: Vec<(usize, char, usize)>,
@@ -76,7 +76,7 @@ struct DictionaryBuilder {
 }
 
 impl DictionaryBuilder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             previous_word: None,
             nodes: vec![NodeBuilder::new()],
@@ -86,7 +86,7 @@ impl DictionaryBuilder {
         }
     }
 
-    fn insert(&mut self, word: &str, debug: bool) {
+    pub fn insert(&mut self, word: &str, debug: bool) {
         self.words += 1;
 
         if debug {
@@ -120,7 +120,7 @@ impl DictionaryBuilder {
         self.previous_word = Some(String::from(word));
     }
 
-    fn into_dict(mut self, debug: bool) -> Dictionary {
+    pub fn into_dict(mut self, debug: bool) -> Dictionary {
         self.minimize(0, false);
 
         let sz1 = self.nodes.len();

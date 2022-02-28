@@ -31,3 +31,18 @@ DASIO
 ```
 
 Currently, only 5x5 text files work. Any "Q" is treated as "Qu". Eventually, I want this to be able to read the letters from a picture of the board.
+
+## Web server
+
+Start it like this:
+
+    make OWL2.json
+    cargo run server
+
+Get a definition like this:
+
+    curl 'http://127.0.0.1:8000/define?word=boggle'
+
+Count the words in a puzzle like this:
+
+    curl 'http://127.0.0.1:8000/boggle?lines=abcde,fghij,klmno,pqrst,uvwxy'

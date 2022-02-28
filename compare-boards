@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# need to run 'cargo run server' separately.
+
+make
+for board in boards/*; do
+  echo $board
+  target/release/boggle-ocr boggle $board | grep ^found
+  printf "%s\n" "$(curl -s http://127.0.0.1:8000/boggle\?lines=$(cat $board | tr '\n' ','))"
+done

@@ -321,6 +321,7 @@ fn boggled(raw: &str) -> Result<Board, WSError> {
     Ok(res)
 }
 
+// TODO - use thiserror
 #[derive(Debug)]
 enum WSError {
     InvalidBoard(String),

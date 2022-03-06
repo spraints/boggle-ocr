@@ -158,6 +158,7 @@ fn dump(opts: options::OcrOptions) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// TODO - use thiserror
 #[derive(Debug)]
 struct GenericError(String);
 

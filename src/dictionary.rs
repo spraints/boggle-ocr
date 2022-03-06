@@ -555,6 +555,7 @@ mod test {
     }
 }
 
+// TODO - use thiserror
 #[derive(Debug)]
 enum DError {
     NoNodesInInput,

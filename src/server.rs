@@ -77,7 +77,7 @@ struct BoggleRequest {
 struct BoggleResponse {
     total_words: usize,
     total_score: u32,
-    words: Vec<String>,
+    words: Vec<wordsearch::Word>,
 }
 
 async fn boggle(st: web::Data<Data>, q: web::Query<BoggleRequest>) -> impl Responder {
@@ -89,7 +89,7 @@ async fn boggle(st: web::Data<Data>, q: web::Query<BoggleRequest>) -> impl Respo
     let resp = BoggleResponse {
         total_words,
         total_score,
-        words: words.into_iter().map(|w| w.word).collect(),
+        words,
     };
     let body = serde_json::to_string(&resp).unwrap();
     HttpResponse::Ok()

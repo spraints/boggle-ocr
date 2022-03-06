@@ -1,4 +1,5 @@
 use super::dictionary;
+use serde::Serialize;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
@@ -66,6 +67,7 @@ fn parse_board_line(line: &str) -> Vec<usize> {
     line.chars().map(dictionary::letter_pos).collect()
 }
 
+#[derive(Serialize)]
 pub struct Word {
     pub word: String,
     pub score: u32,

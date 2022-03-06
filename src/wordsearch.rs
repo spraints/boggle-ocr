@@ -29,7 +29,11 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
     Ok(())
 }
 
-pub fn find_boggle_words(board: &[&str], dict: &dictionary::Dictionary) -> Vec<Word> {
+pub fn find_boggle_words(
+    board: &[&str],
+    dict: &dictionary::Dictionary,
+    min_length: usize,
+) -> Vec<Word> {
     let board: AnyBoard = board.iter().map(|line| parse_board_line(line)).collect();
     let total_letters = board.iter().map(|line| line.len()).sum();
     let mut res = HashSet::new();
@@ -49,7 +53,11 @@ pub fn find_boggle_words(board: &[&str], dict: &dictionary::Dictionary) -> Vec<W
             );
         }
     }
-    let mut res: Vec<Word> = res.into_iter().map(Word::new).collect();
+    let mut res: Vec<Word> = res
+        .into_iter()
+        .map(Word::new)
+        .filter(|w| w.word.len() >= min_length)
+        .collect();
     res.sort();
     res
 }
@@ -196,7 +204,7 @@ fn visit2(
     let ch = board[i][j];
     if let Some(next_node) = lookup(node, ch) {
         scratch.push(ch);
-        if next_node.terminal && scratch.len() > 2 {
+        if next_node.terminal {
             res.insert(scratch.clone());
         }
         for di in -1..=1 {

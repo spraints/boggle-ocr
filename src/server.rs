@@ -65,6 +65,7 @@ async fn lookup_word(st: web::Data<Data>, q: web::Query<LookupWordRequest>) -> i
 
 #[derive(Deserialize)]
 struct BoggleRequest {
+    min_length: Option<usize>,
     line1: String,
     line2: String,
     line3: String,
@@ -76,16 +77,19 @@ struct BoggleRequest {
 struct BoggleResponse {
     total_words: usize,
     total_score: u32,
+    words: Vec<String>,
 }
 
 async fn boggle(st: web::Data<Data>, q: web::Query<BoggleRequest>) -> impl Responder {
+    let min_length = q.min_length.unwrap_or(3);
     let lines: Vec<&str> = vec![&q.line1, &q.line2, &q.line3, &q.line4, &q.line5];
-    let words = wordsearch::find_boggle_words(&lines, &st.dict);
+    let words = wordsearch::find_boggle_words(&lines, &st.dict, min_length);
     let total_words = words.len();
     let total_score = words.iter().map(|w| w.score).sum();
     let resp = BoggleResponse {
         total_words,
         total_score,
+        words: words.into_iter().map(|w| w.word).collect(),
     };
     let body = serde_json::to_string(&resp).unwrap();
     HttpResponse::Ok()
@@ -109,6 +113,7 @@ async fn index() -> impl Responder {
     </form>
     <h1>Find all the words</h1>
     <form action="/boggle" method="get" spellcheck="false">
+      Shortest word: <input type="number" name="min_length" value="3"><br>
       <input type="text" name="line1" placeholder="abcde"><br>
       <input type="text" name="line2" placeholder="abcde"><br>
       <input type="text" name="line3" placeholder="abcde"><br>

@@ -32,6 +32,9 @@ async fn async_serve<A: ToSocketAddrs>(addr: A, data: Data) -> Result<(), Box<dy
             .wrap(Logger::default())
             .route("/define", web::get().to(lookup_word))
             .route("/boggle", web::get().to(boggle))
+            .route("/", web::get().to(index))
+        // TODO - add actix_files
+        // TODO - Maybe use actix-web-static-files?
     })
     .bind(addr)?
     .run()
@@ -62,7 +65,11 @@ async fn lookup_word(st: web::Data<Data>, q: web::Query<LookupWordRequest>) -> i
 
 #[derive(Deserialize)]
 struct BoggleRequest {
-    lines: String, // comma-separated
+    line1: String,
+    line2: String,
+    line3: String,
+    line4: String,
+    line5: String,
 }
 
 #[derive(Serialize)]
@@ -72,7 +79,7 @@ struct BoggleResponse {
 }
 
 async fn boggle(st: web::Data<Data>, q: web::Query<BoggleRequest>) -> impl Responder {
-    let lines: Vec<&str> = q.lines.split(",").collect();
+    let lines: Vec<&str> = vec![&q.line1, &q.line2, &q.line3, &q.line4, &q.line5];
     let words = wordsearch::find_boggle_words(&lines, &st.dict);
     let total_words = words.len();
     let total_score = words.iter().map(|w| w.score).sum();
@@ -84,4 +91,33 @@ async fn boggle(st: web::Data<Data>, q: web::Query<BoggleRequest>) -> impl Respo
     HttpResponse::Ok()
         .content_type(ContentType::json())
         .body(body)
+}
+
+async fn index() -> impl Responder {
+    HttpResponse::Ok().content_type(ContentType::html()).body(
+        r#"
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Boggle solver</title>
+  </head>
+  <body>
+    <h1>Define a word</h1>
+    <form action="/define" method="get" spellcheck="false">
+      <input type="text" name="word" placeholder="word">
+      <input type="submit" value="Define">
+    </form>
+    <h1>Find all the words</h1>
+    <form action="/boggle" method="get" spellcheck="false">
+      <input type="text" name="line1" placeholder="abcde"><br>
+      <input type="text" name="line2" placeholder="abcde"><br>
+      <input type="text" name="line3" placeholder="abcde"><br>
+      <input type="text" name="line4" placeholder="abcde"><br>
+      <input type="text" name="line5" placeholder="abcde"><br>
+      <input type="submit" value="Solve">
+    </form>
+  </body>
+</html>
+"#,
+    )
 }

@@ -4,6 +4,4 @@ set -e
 
 EXE=target/release/boggle-ocr
 make $EXE
-for board in boards/*; do
-  $EXE boggle $board | grep ^found | sed -e "s|^|$board |"
-done
+time target/release/boggle-ocr summarize $(ls boards/* | sort)

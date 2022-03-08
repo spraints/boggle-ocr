@@ -17,6 +17,7 @@ fn main() {
     use options::Commands::*;
     if let Err(err) = match options::parse() {
         Boggle(opts) => boggle(opts),
+        Summarize(opts) => summarize(opts),
         Compile(opts) => compile(opts),
         Ocr(opts) => dump(opts),
         Server(opts) => serve(opts),
@@ -31,6 +32,53 @@ type Res = Result<(), Box<dyn std::error::Error>>;
 fn boggle(opts: options::BoggleOptions) -> Res {
     let dict = dictionary::open_magic(opts.dict)?;
     wordsearch::find_all_in_file(&opts.board, dict)
+}
+
+fn summarize(opts: options::SummarizeOptions) -> Res {
+    let dict = dictionary::open_magic(opts.dict)?;
+    let mut total_words = 0;
+    let mut total_score = 0;
+    let mut boards: usize = 0;
+    for board in opts.boards {
+        match summarize_board(&board, &dict) {
+            Ok((msg, words, score)) => {
+                total_words += words;
+                total_score += score;
+                boards += 1;
+                println!("{}: {}", board, msg);
+            }
+            Err(err) => println!("{}: {}", board, err),
+        };
+    }
+    println!(
+        "avg words: {}, avg score: {}, total words: {}, score {}, {:.2} points per word",
+        total_words / boards,
+        total_score / boards as u32,
+        total_words,
+        total_score,
+        total_score as f64 / total_words as f64
+    );
+    Ok(())
+}
+
+fn summarize_board(
+    board: &str,
+    dict: &dictionary::Dictionary,
+) -> Result<(String, usize, u32), Box<dyn Error>> {
+    let board = std::fs::read_to_string(board)?;
+    let lines: Vec<&str> = board.lines().collect();
+    let words = wordsearch::find_boggle_words(&lines, dict, 3);
+    let total_words = words.len();
+    let total_score: u32 = words.iter().map(|w| w.score).sum();
+    let avg_score = total_score as f64 / total_words as f64;
+    Ok((
+        format!(
+            "found {} words, {} points, {:.2} per word",
+            total_words, total_score, avg_score
+        ),
+        total_words,
+        total_score,
+    ))
 }
 
 fn compile(opts: options::CompileOptions) -> Res {

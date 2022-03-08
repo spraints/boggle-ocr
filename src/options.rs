@@ -18,6 +18,9 @@ pub enum Commands {
     /// Find words in a 5x5 Boggle board.
     Boggle(BoggleOptions),
 
+    /// Summarize words in one or more Boggle boards.
+    Summarize(SummarizeOptions),
+
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
 
@@ -36,6 +39,16 @@ pub struct BoggleOptions {
 
     /// The board as a text file, one line per row.
     pub board: String,
+}
+
+#[derive(Args)]
+pub struct SummarizeOptions {
+    /// The JSON or compiled dictionary to use. Defaults to cached.dict or OWL2.json in the current directory.
+    #[clap(short, long)]
+    pub dict: Option<String>,
+
+    /// The board as a text file, one line per row.
+    pub boards: Vec<String>,
 }
 
 #[derive(Args)]

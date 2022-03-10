@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgEnum, Args, Parser, Subcommand};
 
 // Best docs: https://github.com/clap-rs/clap/tree/v3.0.14/examples/tutorial_derive
 
@@ -49,6 +49,21 @@ pub struct SummarizeOptions {
 
     /// The board as a text file, one line per row.
     pub boards: Vec<String>,
+
+    #[clap(arg_enum, short, long, default_value = "none")]
+    pub sort: SortOrder,
+}
+
+#[derive(ArgEnum, Clone)]
+pub enum SortOrder {
+    /// Keep the items in the provided order.
+    None,
+    /// Sort by name.
+    Name,
+    /// Sort by number of words.
+    Words,
+    /// Sort by total score.
+    Score,
 }
 
 #[derive(Args)]

@@ -4,4 +4,4 @@ set -e
 
 EXE=target/release/boggle-ocr
 make $EXE
-time target/release/boggle-ocr summarize $(ls boards/* | sort)
+time target/release/boggle-ocr summarize "$@" $(ls boards/* | sort)

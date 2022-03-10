@@ -38,24 +38,36 @@ fn summarize(opts: options::SummarizeOptions) -> Res {
     let dict = dictionary::open_magic(opts.dict)?;
     let mut total_words = 0;
     let mut total_score = 0;
-    let mut boards: usize = 0;
+    let mut scores = Vec::new();
     for board in opts.boards {
         match summarize_board(&board, &dict) {
             Ok((msg, words, score)) => {
                 total_words += words;
                 total_score += score;
-                boards += 1;
-                println!("{}: {}", board, msg);
+                scores.push((board, msg, words, score));
             }
             Err(err) => println!("{}: {}", board, err),
         };
     }
+    match opts.sort {
+        options::SortOrder::None => (),
+        options::SortOrder::Name => {
+            scores.sort_by(|(a, _, _, _), (b, _, _, _)| a.partial_cmp(b).unwrap());
+        }
+        options::SortOrder::Words => {
+            scores.sort_by(|(_, _, a, _), (_, _, b, _)| a.partial_cmp(b).unwrap());
+        }
+        options::SortOrder::Score => {
+            scores.sort_by(|(_, _, _, a), (_, _, _, b)| a.partial_cmp(b).unwrap());
+        }
+    };
+    for (board, msg, _, _) in &scores {
+        println!("{}: {}", board, msg);
+    }
     println!(
-        "avg words: {}, avg score: {}, total words: {}, score {}, {:.2} points per word",
-        total_words / boards,
-        total_score / boards as u32,
-        total_words,
-        total_score,
+        "avg words: {}, avg score: {}, {:.2} points per word",
+        total_words / scores.len(),
+        total_score / scores.len() as u32,
         total_score as f64 / total_words as f64
     );
     Ok(())

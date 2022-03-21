@@ -24,9 +24,6 @@ pub enum Commands {
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
 
-    /// Try my OCR code, doesn't really do anything yet.
-    Ocr(OcrOptions),
-
     /// Run a web server.
     Server(ServerOptions),
 }
@@ -76,12 +73,6 @@ pub struct CompileOptions {
 
     /// The compiled output file.
     pub output: String,
-}
-
-#[derive(Args)]
-pub struct OcrOptions {
-    /// The input image file.
-    pub input: String,
 }
 
 #[derive(Args)]

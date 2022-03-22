@@ -1,4 +1,4 @@
-use super::dictionary;
+use super::dictionary::{self, Q, U};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::error::Error;
@@ -63,7 +63,7 @@ pub fn find_boggle_words(
     res
 }
 
-fn parse_board_line(line: &str) -> Vec<usize> {
+fn parse_board_line(line: &str) -> Vec<dictionary::Letter> {
     line.chars().map(dictionary::letter_pos).collect()
 }
 
@@ -74,7 +74,7 @@ pub struct Word {
 }
 
 impl Word {
-    fn new(word: Vec<usize>) -> Self {
+    fn new(word: Vec<dictionary::Letter>) -> Self {
         let w = stringify_word(word);
         let s = score(&w);
         Self { word: w, score: s }
@@ -133,7 +133,7 @@ fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
     res
 }
 
-fn stringify_word(nw: Vec<usize>) -> String {
+fn stringify_word(nw: Vec<dictionary::Letter>) -> String {
     nw.into_iter()
         .flat_map(|ch| QU::new(dictionary::letter_for_pos(ch)))
         .collect()
@@ -199,8 +199,8 @@ fn visit2(
     pk: &PositionKeeper,
     board: &AnyBoard,
     node: &dictionary::Node,
-    res: &mut HashSet<Vec<usize>>,
-    scratch: &mut Vec<usize>,
+    res: &mut HashSet<Vec<dictionary::Letter>>,
+    scratch: &mut Vec<dictionary::Letter>,
 ) {
     let (i, j) = pos;
     let ch = board[i][j];
@@ -251,8 +251,8 @@ fn visit(
     visited: Visited,
     board: &Board,
     node: &dictionary::Node,
-    res: &mut HashSet<Vec<usize>>,
-    scratch: &mut Vec<usize>,
+    res: &mut HashSet<Vec<dictionary::Letter>>,
+    scratch: &mut Vec<dictionary::Letter>,
 ) {
     let (i, j) = pos;
     let ch = board[i][j];
@@ -280,10 +280,7 @@ fn visit(
     }
 }
 
-const Q: usize = 16;
-const U: usize = 20;
-
-fn lookup(node: &dictionary::Node, ch: usize) -> Option<&dictionary::Node> {
+fn lookup(node: &dictionary::Node, ch: dictionary::Letter) -> Option<&dictionary::Node> {
     match node.lookup(ch) {
         Some(child) if ch == Q => child.lookup(U),
         res => res,
@@ -297,11 +294,11 @@ fn mark_visit(visited: Visited, pos: Pos) -> Visited {
 
 type Visited = u32;
 type Pos = (usize, usize);
-type Board = [[usize; 5]; 5];
-type AnyBoard = Vec<Vec<usize>>;
+type Board = [[dictionary::Letter; 5]; 5];
+type AnyBoard = Vec<Vec<dictionary::Letter>>;
 
 fn boggled(raw: &str) -> Result<Board, WSError> {
-    let mut res = [[255; 5]; 5];
+    let mut res = [[dictionary::Letter::empty(); 5]; 5];
     for (i, line) in raw.lines().enumerate() {
         if i > 4 {
             return Err(WSError::InvalidBoard(String::from(
@@ -320,7 +317,7 @@ fn boggled(raw: &str) -> Result<Board, WSError> {
     }
     for (i, row) in res.iter().enumerate() {
         for ch in row {
-            if *ch == 255 {
+            if ch.is_empty() {
                 return Err(WSError::InvalidBoard(format!(
                     "not enough letters on line {}",
                     i + 1

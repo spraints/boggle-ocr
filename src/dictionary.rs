@@ -15,6 +15,35 @@ const DEBUG: bool = false;
 
 pub type Definitions = HashMap<String, Vec<String>>;
 
+// In the Dictionary, each letter is represented by its offset from 'a'.
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Letter(usize);
+
+pub const Q: Letter = Letter(16);
+pub const U: Letter = Letter(20);
+
+impl Letter {
+    pub fn new(ch: char) -> Self {
+        letter_pos(ch)
+    }
+
+    pub fn empty() -> Self {
+        Self(255)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0 >= 26
+    }
+
+    pub fn i(&self) -> usize {
+        self.0
+    }
+
+    pub fn ch(&self) -> char {
+        letter_for_pos(*self)
+    }
+}
+
 pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
     let j = read_to_string(path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
@@ -209,7 +238,8 @@ impl DictionaryBuilder {
     fn describe(&self, idx: usize) -> String {
         let mut res = String::from("[ ");
         let node = &self.nodes[idx];
-        for (pos, oidx) in node.children.iter().enumerate() {
+        for (i, oidx) in node.children.iter().enumerate() {
+            let pos = Letter(i);
             if let Some(idx) = oidx {
                 res.push(letter_for_pos(pos));
                 if node.terminal {
@@ -240,7 +270,7 @@ impl NodeBuilder {
     }
 
     fn set_child(&mut self, letter: char, child_idx: usize) {
-        self.children[letter_pos(letter)] = Some(child_idx);
+        self.children[letter_pos(letter).0] = Some(child_idx);
     }
 }
 
@@ -284,8 +314,8 @@ impl Node {
         }
     }
 
-    pub fn lookup(&self, ch: usize) -> Option<&Node> {
-        match self.children.get(ch) {
+    pub fn lookup(&self, ch: Letter) -> Option<&Node> {
+        match self.children.get(ch.0) {
             Some(Some(rc_node)) => Some(rc_node),
             _ => None,
         }
@@ -457,13 +487,21 @@ impl NodeRefParseState {
     }
 }
 
-pub fn letter_pos(letter: char) -> usize {
+pub fn try_letter_pos(letter: char) -> Option<Letter> {
     let pos = letter.to_lowercase().next().unwrap() as u8 - b'a';
-    assert!(pos < 26);
-    pos as usize
+    if pos < 26 {
+        Some(Letter(pos as usize))
+    } else {
+        None
+    }
 }
 
-pub fn letter_for_pos(pos: usize) -> char {
+pub fn letter_pos(letter: char) -> Letter {
+    try_letter_pos(letter).unwrap()
+}
+
+pub fn letter_for_pos(pos: Letter) -> char {
+    let Letter(pos) = pos;
     assert!(pos < 26);
     (b'a' + pos as u8) as char
 }

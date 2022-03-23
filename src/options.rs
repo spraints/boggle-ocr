@@ -18,6 +18,9 @@ pub enum Commands {
     /// Find words in a 5x5 Boggle board.
     Boggle(BoggleOptions),
 
+    /// Show possible wordle words.
+    Wordle(WordleOptions),
+
     /// Summarize words in one or more Boggle boards.
     Summarize(SummarizeOptions),
 
@@ -36,6 +39,25 @@ pub struct BoggleOptions {
 
     /// The board as a text file, one line per row.
     pub board: String,
+}
+
+#[derive(Args)]
+pub struct WordleOptions {
+    /// The JSON or compiled dictionary to use. Defaults to cached.dict or OWL2.json in the current
+    /// directory.
+    #[clap(short, long)]
+    pub dict: Option<String>,
+
+    /// The letters you know are in the solution.
+    #[clap(short, long)]
+    pub include: Option<String>,
+
+    /// The letters you know are not in the solution.
+    #[clap(short, long)]
+    pub exclude: Option<String>,
+
+    /// The puzzle with green letters filled in, e.g. "--b--".
+    pub pattern: Option<String>,
 }
 
 #[derive(Args)]

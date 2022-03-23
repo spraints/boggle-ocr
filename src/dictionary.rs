@@ -27,6 +27,10 @@ impl Letter {
         letter_pos(ch)
     }
 
+    pub fn for_i(i: usize) -> Self {
+        Self(i)
+    }
+
     pub fn empty() -> Self {
         Self(255)
     }
@@ -57,7 +61,7 @@ pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>
     Ok((builder.into_dict(false), defs))
 }
 
-pub fn open_magic(path: Option<String>) -> Result<Dictionary, Box<dyn Error>> {
+pub fn open_magic(path: &Option<String>) -> Result<Dictionary, Box<dyn Error>> {
     let compile_path = match path {
         Some(ref p) => p,
         None => DICT,

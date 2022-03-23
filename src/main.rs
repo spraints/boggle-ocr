@@ -5,6 +5,7 @@ use std::io::BufWriter;
 pub mod dictionary;
 mod options;
 mod server;
+mod wordle;
 mod wordsearch;
 
 // detect dice: https://stackoverflow.com/questions/55169645/square-detection-in-image
@@ -14,6 +15,7 @@ fn main() {
     use options::Commands::*;
     if let Err(err) = match options::parse() {
         Boggle(opts) => boggle(opts),
+        Wordle(opts) => wordle(opts),
         Summarize(opts) => summarize(opts),
         Compile(opts) => compile(opts),
         Server(opts) => serve(opts),
@@ -26,12 +28,65 @@ fn main() {
 type Res = Result<(), Box<dyn std::error::Error>>;
 
 fn boggle(opts: options::BoggleOptions) -> Res {
-    let dict = dictionary::open_magic(opts.dict)?;
+    let dict = dictionary::open_magic(&opts.dict)?;
     wordsearch::find_all_in_file(&opts.board, dict)
 }
 
+fn wordle(opts: options::WordleOptions) -> Res {
+    let dict = dictionary::open_magic(&opts.dict)?;
+    let clues = wordle_clues(opts)?;
+    let words = wordle::run(&clues, &dict);
+    println!("{} words are possible!", words.len());
+    if words.len() < 20 {
+        for w in words {
+            println!("- {}", w);
+        }
+    } else {
+        let mut counts = [0; 26];
+        for w in words {
+            for c in w.chars() {
+                counts[dictionary::Letter::new(c).i()] += 1;
+            }
+        }
+        let mut counts: Vec<(usize, u32)> = counts.into_iter().enumerate().collect();
+        // sort from max to min.
+        counts.sort_by(|(_, a), (_, b)| b.cmp(a));
+        println!("most common letters:");
+        for (i, count) in &counts[..10] {
+            println!(" {}: {}", dictionary::Letter::for_i(*i).ch(), count);
+        }
+    }
+    Ok(())
+}
+
+fn wordle_clues(opts: options::WordleOptions) -> Result<Vec<wordle::Clue>, GenericError> {
+    let mut res = vec![];
+    if let Some(pattern) = opts.pattern {
+        for (i, ch) in pattern.chars().enumerate() {
+            if i > 4 {
+                return Err(GenericError(format!("invalid pattern \"{}\"", pattern)));
+            }
+            if ch == '-' {
+                continue;
+            }
+            res.push(wordle::Clue::Green(ch, i));
+        }
+    }
+    if let Some(s) = opts.include {
+        for ch in s.chars() {
+            res.push(wordle::Clue::Yellow(ch));
+        }
+    }
+    if let Some(s) = opts.exclude {
+        for ch in s.chars() {
+            res.push(wordle::Clue::Gray(ch));
+        }
+    }
+    Ok(res)
+}
+
 fn summarize(opts: options::SummarizeOptions) -> Res {
-    let dict = dictionary::open_magic(opts.dict)?;
+    let dict = dictionary::open_magic(&opts.dict)?;
     let mut total_words = 0;
     let mut total_score = 0;
     let mut scores = Vec::new();

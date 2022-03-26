@@ -100,6 +100,15 @@ pub fn report_time(label: &str, t: std::time::Instant) {
     }
 }
 
+pub fn build_dictionary(mut words: Vec<&str>) -> Dictionary {
+    words.sort();
+    let mut db = DictionaryBuilder::new();
+    for word in words {
+        db.insert(&word, false);
+    }
+    db.into_dict(false)
+}
+
 struct DictionaryBuilder {
     previous_word: Option<String>,
     nodes: Vec<NodeBuilder>,
@@ -536,6 +545,8 @@ impl<'de> Visitor<'de> for OWLVisitor {
 
 #[cfg(test)]
 mod test {
+    use super::Letter;
+
     fn make_test_dictionary(debug: bool) -> super::Dictionary {
         let mut builder = super::DictionaryBuilder::new();
         builder.insert("cat", debug);
@@ -586,7 +597,7 @@ mod test {
         for (i, child) in node.children.iter().enumerate() {
             if let Some(child) = child {
                 for w in make_some_words(n - res.len(), child) {
-                    res.push(format!("{}{}", super::letter_for_pos(i), w));
+                    res.push(format!("{}{}", super::letter_for_pos(Letter::for_i(i)), w));
                     if res.len() >= n {
                         return res;
                     }

@@ -346,11 +346,13 @@ impl Error for WSError {}
 
 #[cfg(test)]
 mod test {
+    use super::dictionary::build_dictionary;
+
     #[test]
     fn example() {
         let dict = build_dictionary(vec!["tenets", "facts", "honey"]);
         let res =
-            super::find_boggle_words(&vec!["taeyl", "eohak", "yneit", "yteyl", "shaig"], &dict);
+            super::find_boggle_words(&vec!["taeyl", "eohak", "yneit", "yteyl", "shaig"], &dict, 3);
         let words: Vec<String> = res.into_iter().map(|w| w.word).collect();
         assert_eq!(words, vec!["honey", "tenets"]);
     }
@@ -358,17 +360,8 @@ mod test {
     #[test]
     fn example_with_implied_u_after_q() {
         let dict = build_dictionary(vec!["quit", "quick"]);
-        let res = super::find_boggle_words(&vec!["qic", "xkk"], &dict);
+        let res = super::find_boggle_words(&vec!["qic", "xkk"], &dict, 3);
         let words: Vec<String> = res.into_iter().map(|w| w.word).collect();
         assert_eq!(words, vec!["quick"]);
-    }
-
-    fn build_dictionary(mut words: Vec<&str>) -> crate::dictionary::Dictionary {
-        words.sort();
-        let mut db = crate::dictionary::DictionaryBuilder::new();
-        for word in words {
-            db.insert(&word, false);
-        }
-        db.into_dict(false)
     }
 }

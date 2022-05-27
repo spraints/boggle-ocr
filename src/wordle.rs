@@ -41,7 +41,7 @@ fn search(
     node: &dictionary::Node,
 ) {
     if i == work.len() {
-        if node.terminal {
+        if node.terminal && satisfies_rules(work, known, include) {
             res.insert(work.iter().map(|l| letter_for_pos(*l)).collect());
         }
         return;
@@ -52,6 +52,22 @@ fn search(
             search(res, work, i + 1, known, include, ok, n);
         }
     }
+}
+
+fn satisfies_rules(work: &[Letter; 5], known: &[Option<Letter>], include: &[Letter]) -> bool {
+    for (i, o) in known.iter().enumerate() {
+        if let Some(l) = o {
+            if work[i] != *l {
+                return false;
+            }
+        }
+    }
+    for l in include {
+        if !work.contains(l) {
+            return false;
+        }
+    }
+    true
 }
 
 fn letter_choices(

@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{read_to_string, File};
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::sync::Arc;
 
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
@@ -10,6 +11,7 @@ use std::sync::Arc;
 
 const JSON_DICT: &str = "OWL2.json";
 const DICT: &str = "cached.dict";
+const DIR: &str = "/Users/spraints/src/github.com/spraints/boggle-ocr";
 
 const DEBUG: bool = false;
 
@@ -49,7 +51,7 @@ impl Letter {
 }
 
 pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
-    let j = read_to_string(path)?;
+    let j = magic_read_to_string(path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
     let mut defs = HashMap::new();
@@ -75,7 +77,7 @@ pub fn open_magic(path: &Option<String>) -> Result<Dictionary, Box<dyn Error>> {
         None => JSON_DICT,
     };
 
-    let j = read_to_string(json_path)?;
+    let j = magic_read_to_string(json_path)?;
     let mut de = serde_json::Deserializer::from_str(&j);
     let mut builder = DictionaryBuilder::new();
     let map = de.deserialize_map(OWLVisitor::new())?;
@@ -87,7 +89,10 @@ pub fn open_magic(path: &Option<String>) -> Result<Dictionary, Box<dyn Error>> {
 }
 
 fn read(path: &str) -> Result<Dictionary, Box<dyn Error>> {
-    let f = File::open(path)?;
+    let f = match File::open(path) {
+        Ok(f) => f,
+        Err(orig_err) => File::open(other_path(path)).or(Err(orig_err))?,
+    };
     let mut f = BufReader::new(f);
     Dictionary::from(&mut f)
 }
@@ -606,6 +611,17 @@ mod test {
         }
         res
     }
+}
+
+fn magic_read_to_string<P: AsRef<Path>>(path: P) -> std::io::Result<String> {
+    match read_to_string(&path) {
+        Ok(f) => Ok(f),
+        Err(orig_err) => read_to_string(other_path(path)).or(Err(orig_err)),
+    }
+}
+
+fn other_path<P: AsRef<Path>>(path: P) -> std::path::PathBuf {
+    Path::new(DIR).join(path)
 }
 
 // TODO - use thiserror

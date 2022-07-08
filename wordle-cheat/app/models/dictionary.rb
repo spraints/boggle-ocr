@@ -1,6 +1,6 @@
 class Dictionary
   def self.instance
-    @@instance = parse(Rails.root.join("config/dictionary"))
+    @@instance ||= parse(Rails.root.join("config/dictionary"))
   end
 
   def self.parse(path)

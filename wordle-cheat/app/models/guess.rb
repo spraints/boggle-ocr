@@ -26,6 +26,16 @@ class Guess
     @letters.map { |l, r| wrap(l, r) }.join
   end
 
+  def to_s
+    to_param
+  end
+
+  def with(i, char_type)
+    new_guess = self.class.new(to_param)
+    new_guess.letters[i][1] = char_type
+    new_guess
+  end
+
   private
 
   def wrap(letter, char_type)

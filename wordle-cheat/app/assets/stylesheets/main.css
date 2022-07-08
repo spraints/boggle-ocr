@@ -3,9 +3,26 @@
 }
 
 .guess-letter {
+  position: relative;
   border: solid 1px black;
   padding: 0.5em;
   margin: 0.5em;
+}
+
+.guess-mod {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 1em;
+  width: 200px;
+  z-index: 1000;
+  border: solid 1px black;
+  padding: 0.5em;
+  background-color: #ddd;
+}
+
+.guess-letter:hover > .guess-mod {
+  display: block;
 }
 
 .guess-not-in-puzzle {

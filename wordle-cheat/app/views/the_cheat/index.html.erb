@@ -5,12 +5,12 @@
 
 <form action="<%= root_url %>" method="get">
 
-<% @guesses.each do |guess| %>
+<% @guesses.each_with_index do |guess, i| %>
   <div class="guess">
     <input type="hidden" name="previous_guess[]" value="<%= guess.to_param %>">
 
-    <% guess.letters.each do |letter, char_type| %>
-      <span class="guess-letter guess-<%= char_type %>"><%= letter %></span>
+    <% guess.letters.each_with_index do |(letter, char_type), j| %>
+      <%= render "letter", letter: letter, char_type: char_type, guess_idx: i, letter_idx: j %>
     <% end %>
   </div>
 <% end %>

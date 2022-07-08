@@ -1,4 +1,8 @@
 class Dictionary
+  def self.instance
+    @@instance = parse(Rails.root.join("config/dictionary"))
+  end
+
   def self.parse(path)
     nodes = {}
     root = nil
@@ -37,7 +41,7 @@ class Dictionary
   end
 
   def inspect
-    "#<Dictionary>"
+    "#<Dictionary:root=#{@root.id}>"
   end
 
   def has_word?(word)
@@ -48,12 +52,18 @@ class Dictionary
     node.terminal?
   end
 
+  def lookup(c)
+    @root.lookup(c)
+  end
+
   class Node
     def initialize(id:, terminal:, letters:)
       @id = id
       @terminal = terminal
       @letters = letters
     end
+
+    attr_reader :id
 
     def terminal?
       @terminal
@@ -63,12 +73,24 @@ class Dictionary
       @letters[ctop(c)]
     end
 
+    def inspect
+      "#<Node:#{id}#{terminal? ? " (terminal)": ""} #{next_letters.inspect}>"
+    end
+
     private
+
+    def next_letters
+      @letters.each_with_index.map { |n, l| n.nil? ? nil : ptoc(l) }.compact
+    end
 
     A = 'a'.ord
 
     def ctop(c)
       c.downcase.ord - A
+    end
+
+    def ptoc(p)
+      (A + p).chr
     end
   end
 end

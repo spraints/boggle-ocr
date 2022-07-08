@@ -15,6 +15,13 @@
   </div>
 <% end %>
 
-<input type="text" name="guess">
+<% unless @guesses.empty? %>
+  <div>
+    <%= @remaining_words.size %> more words
+    <ul><% @remaining_words.take(10).each do |w| %><li><%= w %></li><% end %></ul>
+  </div>
+<% end %>
+
+<input type="text" name="guess" placeholder="next guess">
 
 </form>

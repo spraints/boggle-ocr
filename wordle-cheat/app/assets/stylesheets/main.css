@@ -1,0 +1,21 @@
+.guess {
+  padding: 1em;
+}
+
+.guess-letter {
+  border: solid 1px black;
+  padding: 0.5em;
+  margin: 0.5em;
+}
+
+.guess-not-in-puzzle {
+  background-color: #cccccc;
+}
+
+.guess-correct-position {
+  background-color: green;
+}
+
+.guess-incorrect-position {
+  background-color: yellow;
+}

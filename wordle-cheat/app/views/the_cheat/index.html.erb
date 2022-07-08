@@ -1,0 +1,20 @@
+<h1>Wordle cheat mode</h1>
+
+<a href="<%= root_url %>">Reset</a><br>
+<hr>
+
+<form action="<%= root_url %>" method="get">
+
+<% @guesses.each do |guess| %>
+  <div class="guess">
+    <input type="hidden" name="previous_guess[]" value="<%= guess.to_param %>">
+
+    <% guess.letters.each do |letter, char_type| %>
+      <span class="guess-letter guess-<%= char_type %>"><%= letter %></span>
+    <% end %>
+  </div>
+<% end %>
+
+<input type="text" name="guess">
+
+</form>

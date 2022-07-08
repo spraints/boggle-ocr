@@ -5,4 +5,5 @@ COPY Gemfile /app
 COPY Gemfile.lock /app
 RUN bundle config set --local without 'development test' && bundle install
 COPY . /app
+ENV RAILS_ENV=production
 CMD ["bin/rails", "server"]

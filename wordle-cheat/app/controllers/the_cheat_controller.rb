@@ -35,40 +35,31 @@ class TheCheatController < ApplicationController
       end
     end
 
-    p possible: possible, fixed: fixed, known: known
-
     result = []
-    @v = 10
     find_words2(result, [], Dictionary.instance, possible, fixed, known)
     result
   end
 
   def find_words2(result, cur, dict, possible, fixed, known)
-    @v -= 1
     if fixed.empty?
-      p is_it_a_word: cur, dict: dict if @v > 0 || cur[0] == 'v'
       if dict.terminal?
         result << cur.join
       end
       return
     end
 
-    p cur: cur, fixed: fixed, known: known, dict: dict if @v > 0 || cur[0] == 'v'
     l, *fixed = fixed
     if l
-      p i_know_this_one: l if @v > 0 || cur[0] == 'v'
       next_dict = dict.lookup(l)
       return unless next_dict
       find_words2(result, cur + [l], next_dict, possible, fixed, known)
     elsif known.size > fixed.select { |x| x.nil? }.size
-      p gotta_be_one_of_these: known if @v > 0 || cur[0] == 'v'
       known.each do |l|
         next_dict = dict.lookup(l)
         next unless next_dict
         find_words2(result, cur + [l], next_dict, possible, fixed, known - [l])
       end
     else
-      p could_be_any_of_these: possible if @v > 0 || cur[0] == 'v'
       possible.each do |l|
         next_dict = dict.lookup(l)
         next unless next_dict

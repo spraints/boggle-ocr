@@ -35,36 +35,67 @@ class TheCheatController < ApplicationController
       end
     end
 
-    result = []
-    find_words2(result, [], Dictionary.instance, possible, fixed, known)
-    result
+    find_words2 \
+      possible: possible,
+      fixed: fixed,
+      known: known
   end
 
-  def find_words2(result, cur, dict, possible, fixed, known)
-    if fixed.empty?
+  # Finds words given constraints.
+  #
+  # possible - Array of all allowed letters.
+  # known - Array of all letters that must be in the puzzle.
+  # fixed - Array, same length as 'work'. Any letters that are filled in are copied into the same place in 'work'.
+  #
+  # found - Array, will have any new words added to it. Will be returned.
+  # work - Array, will be modified. Using this saves us from needing to allocate.
+  # len - Number of letters already placed into 'work'.
+  # dict - Dictionary or Node that can be used to find the next letter.
+  def find_words2(possible:, known:, fixed:, found: [], work: ['a']*5, len: 0, dict: Dictionary.instance)
+    if len == 5
       if dict.terminal?
-        result << cur.join
+        found << work.join
       end
-      return
+      return found
     end
 
-    l, *fixed = fixed
-    if l
-      next_dict = dict.lookup(l)
-      return unless next_dict
-      find_words2(result, cur + [l], next_dict, possible, fixed, known)
-    elsif known.size > fixed.select { |x| x.nil? }.size
-      known.each do |l|
-        next_dict = dict.lookup(l)
-        next unless next_dict
-        find_words2(result, cur + [l], next_dict, possible, fixed, known - [l])
+    i = len
+    if l = fixed[i]
+      if next_dict = dict.lookup(l)
+        work[i] = l
+        find_words2 possible: possible, known: known, fixed: fixed,
+          found: found, work: work, len: len + 1, dict: next_dict
+      end
+    elsif choices = must_be_a_known_value(known: known, fixed: fixed, work: work, len: len)
+      choices.each do |l|
+        if next_dict = dict.lookup(l)
+          work[i] = l
+          find_words2 possible: possible, known: known, fixed: fixed,
+            found: found, work: work, len: len + 1, dict: next_dict
+        end
       end
     else
       possible.each do |l|
-        next_dict = dict.lookup(l)
-        next unless next_dict
-        find_words2(result, cur + [l], next_dict, possible, fixed, known - [l])
+        if next_dict = dict.lookup(l)
+          work[i] = l
+          find_words2 possible: possible, known: known, fixed: fixed,
+            found: found, work: work, len: len + 1, dict: next_dict
+        end
       end
     end
+
+    return found
+  end
+
+  def must_be_a_known_value(known:, fixed:, work:, len:)
+    remaining = work.size - len
+    fixed.each_with_index do |l, i|
+      remaining -= 1 unless i < len || l.nil?
+    end
+    unused_known = known - work[0, len]
+    if unused_known.size < remaining
+      return nil
+    end
+    return unused_known
   end
 end

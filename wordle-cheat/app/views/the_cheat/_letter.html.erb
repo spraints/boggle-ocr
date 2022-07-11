@@ -1,12 +1,13 @@
 <span class="guess-letter guess-<%= char_type %>">
   <div class="guess-mod">
+    <%= letter %>
     <% [
       [ Guess::NOT_IN_PUZZLE, "not in puzzle" ],
       [ Guess::CORRECT_POSITION, "exact match (green)" ],
       [ Guess::INCORRECT_POSITION, "match (yellow)" ],
     ].each do |new_char_type, label| %>
       <% if char_type != new_char_type %>
-        <div>
+        <div class="guess-mod-link guess-<%= new_char_type %>">
           <a href="<%= updated_guess_url(new_char_type, guess_idx, letter_idx) %>"><%= label %></a>
         </div>
       <% end %>

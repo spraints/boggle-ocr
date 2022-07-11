@@ -13,16 +13,22 @@
   display: none;
   position: absolute;
   top: 0;
-  left: 1em;
+  left: 0;
   width: 200px;
   z-index: 1000;
   border: solid 1px black;
   padding: 0.5em;
-  background-color: #ddd;
+  background-color: inherit;
 }
 
 .guess-letter:hover > .guess-mod {
   display: block;
+}
+
+.guess-mod-link {
+  padding: 0.5em;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
 }
 
 .guess-not-in-puzzle {

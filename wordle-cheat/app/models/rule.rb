@@ -4,7 +4,7 @@ class Rule
       @letter = letter
     end
 
-    def apply(letter, **)
+    def apply(letter, state:, position:)
       if letter == @letter
         [false, nil]
       else
@@ -23,7 +23,7 @@ class Rule
       @position = position
     end
 
-    def apply(letter, position:, **)
+    def apply(letter, position:, state:)
       if @position == position && @letter == letter
         [false, nil]
       else
@@ -42,7 +42,7 @@ class Rule
       @count = count
     end
 
-    def apply(letter, state:, **)
+    def apply(letter, state:, position:)
       if @letter == letter
         [true, (state || 0) + 1]
       else
@@ -56,12 +56,12 @@ class Rule
   end
 
   class Match
-    def initialize(letter, position:, **)
+    def initialize(letter, position:)
       @letter = letter
       @position = position
     end
 
-    def apply(letter, position:, **)
+    def apply(letter, position:, state:)
       if position == @position && letter != @letter
         [false, nil]
       else

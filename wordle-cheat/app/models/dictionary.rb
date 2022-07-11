@@ -70,7 +70,7 @@ class Dictionary
     attr_reader :id
 
     def next_letters
-      @letters.each_with_index.map { |n, l| n.nil? ? nil : ptoc(l) }.compact
+      @next_letters ||= @letters.each_with_index.map { |n, l| n.nil? ? nil : ptoc(l) }.compact
     end
 
     def terminal?

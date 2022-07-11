@@ -56,6 +56,10 @@ class Dictionary
     @root.lookup(c)
   end
 
+  def next_letters
+    @root.next_letters
+  end
+
   class Node
     def initialize(id:, terminal:, letters:)
       @id = id
@@ -64,6 +68,10 @@ class Dictionary
     end
 
     attr_reader :id
+
+    def next_letters
+      @letters.each_with_index.map { |n, l| n.nil? ? nil : ptoc(l) }.compact
+    end
 
     def terminal?
       @terminal
@@ -78,10 +86,6 @@ class Dictionary
     end
 
     private
-
-    def next_letters
-      @letters.each_with_index.map { |n, l| n.nil? ? nil : ptoc(l) }.compact
-    end
 
     A = 'a'.ord
 

@@ -1,0 +1,13 @@
+services:
+  # This is useful for reproducing problems that pop up on heroku. For other
+  # dev stuff, I generally just use 'script/server'.
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:12345:12345"
+    environment:
+      # Heroku sets PORT to be the port it expects the app to listen on.
+      PORT: "12345"
+      # These vars are set via 'heroku config', though the values might be
+      # different here.
+      SECRET_KEY_BASE: 856b1134dc87d21495a63d1a6e84c1061df97bf629c271badbe0ab0bf2b8188de5d6343a683879eed8887fc28b18506fec2d92c1b85ef7edd6e6625765a843f3

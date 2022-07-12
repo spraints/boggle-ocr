@@ -15,13 +15,20 @@
   </div>
 <% end %>
 
+<input type="text" name="guess" placeholder="next guess">
+
 <% unless @guesses.empty? %>
   <div>
     <%= @remaining_words.size %> more words
     <ul><% @remaining_words.take(10).each do |w| %><li><%= w %></li><% end %></ul>
   </div>
+  <div>
+    Most common letters.
+    <ul>
+      <% @letter_counts.sort_by { |l, c| [-c, l] }.each do |l, c| %>
+        <li><b><%= l %></b> <%= c %></li>
+      <% end %>
+    </ul>
 <% end %>
-
-<input type="text" name="guess" placeholder="next guess">
 
 </form>

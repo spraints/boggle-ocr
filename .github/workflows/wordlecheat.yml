@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: ['main']
+  pull_request:
 
 env:
   REGISTRY: ghcr.io
@@ -60,7 +61,7 @@ jobs:
         uses: docker/build-push-action@c84f38281176d4c9cdb1626ffafcd6b3911b5d94 # v3.1.1
         with:
           context: wordle-cheat
-          push: true
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

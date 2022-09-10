@@ -10,6 +10,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/wordle-cheat
 
+defaults:
+  run:
+    working-directory: wordle-cheat
+
 jobs:
   run-tests:
     runs-on: ubuntu-latest

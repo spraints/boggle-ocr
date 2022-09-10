@@ -10,6 +10,25 @@ env:
   IMAGE_NAME: ${{ github.repository }}/wordle-cheat
 
 jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # based on https://boringrails.com/articles/building-a-rails-ci-pipeline-with-github-actions/
+
+      - name: Checkout repository
+        uses: actions/checkout@v3.0.2
+
+      - name: Setup Ruby and install gems
+        uses: ruby/setup-ruby@72d59482210349c1114eca714b6c5df19fbbec34 # v1.116.0
+        with:
+          bundler-cache: true
+
+      - name: Run tests
+        run: bin/rails test
+
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:

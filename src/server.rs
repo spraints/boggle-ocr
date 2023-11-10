@@ -54,7 +54,7 @@ struct LookupWordResponse {
 
 async fn lookup_word(st: web::Data<Data>, q: web::Query<LookupWordRequest>) -> impl Responder {
     let definitions = match st.defs.get(&q.word) {
-        Some(d) => d.clone(),
+        Some(d) => vec![d.clone()],
         None => vec![],
     };
     let body = serde_json::to_string(&LookupWordResponse { definitions }).unwrap();

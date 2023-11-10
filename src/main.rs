@@ -145,6 +145,7 @@ fn summarize_board(
 }
 
 fn compile(opts: options::CompileOptions) -> Res {
+    let (dict, _) = dictionary::open_json(&opts.input)?;
     let mut fo = OpenOptions::new();
     fo.write(true).truncate(true);
     if opts.overwrite {
@@ -165,7 +166,6 @@ fn compile(opts: options::CompileOptions) -> Res {
         },
     };
     let mut outf = BufWriter::new(outf);
-    let (dict, _) = dictionary::open_json(&opts.input)?;
     dict.save(&mut outf)?;
     Ok(())
 }

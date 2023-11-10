@@ -15,7 +15,7 @@ const DIR: &str = "/Users/spraints/src/github.com/spraints/boggle-ocr";
 
 const DEBUG: bool = false;
 
-pub type Definitions = HashMap<String, Vec<String>>;
+pub type Definitions = HashMap<String, String>;
 
 // In the Dictionary, each letter is represented by its offset from 'a'.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -52,7 +52,11 @@ impl Letter {
 
 pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
     let j = magic_read_to_string(path)?;
-    let mut de = serde_json::Deserializer::from_str(&j);
+    open_json_str(&j)
+}
+
+pub fn open_json_str(j: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
+    let mut de = serde_json::Deserializer::from_str(j);
     let mut builder = DictionaryBuilder::new();
     let mut defs = HashMap::new();
     let map = de.deserialize_map(OWLVisitor::new())?;
@@ -515,7 +519,10 @@ pub fn try_letter_pos(letter: char) -> Option<Letter> {
 }
 
 pub fn letter_pos(letter: char) -> Letter {
-    try_letter_pos(letter).unwrap()
+    match try_letter_pos(letter) {
+        Some(l) => l,
+        None => unreachable!("can't get letter_pos for {letter}"),
+    }
 }
 
 pub fn letter_for_pos(pos: Letter) -> char {
@@ -533,7 +540,7 @@ impl OWLVisitor {
 }
 
 impl<'de> Visitor<'de> for OWLVisitor {
-    type Value = Vec<(String, Vec<String>)>;
+    type Value = Vec<(String, String)>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("a map of word definitions")
@@ -542,7 +549,9 @@ impl<'de> Visitor<'de> for OWLVisitor {
     fn visit_map<M: MapAccess<'de>>(self, mut access: M) -> Result<Self::Value, M::Error> {
         let mut res = vec![];
         while let Some((key, value)) = access.next_entry()? {
-            res.push((key, value));
+            if key != "__VERSION__" {
+                res.push((key, value));
+            }
         }
         Ok(res)
     }
@@ -572,6 +581,19 @@ mod test {
         );
     }
 
+    // Make the test words into a dict like I would get from the website.
+    const TEST_DICT: &'static str = r#"
+      {
+        "__VERSION__": "anything",
+        "cat": "mrow",
+        "cats": "mrow mrow",
+        "fact": "the truth",
+        "facts": "josiah bounderby",
+        "facet": "one way",
+        "facets": "many ways"
+      }
+    "#;
+
     #[test]
     fn example() {
         let dict = make_test_dictionary(true);
@@ -589,6 +611,23 @@ mod test {
         let dict = super::Dictionary::from(&mut r).unwrap();
 
         check_test_words(&dict);
+    }
+
+    #[test]
+    fn open_dict_js() {
+        let (dict, defs) = super::open_json_str(TEST_DICT).unwrap();
+        check_test_words(&dict);
+        assert_eq!(
+            super::Definitions::from([
+                ("cat".to_owned(), "mrow".to_owned()),
+                ("cats".to_owned(), "mrow mrow".to_owned()),
+                ("fact".to_owned(), "the truth".to_owned()),
+                ("facts".to_owned(), "josiah bounderby".to_owned()),
+                ("facet".to_owned(), "one way".to_owned()),
+                ("facets".to_owned(), "many ways".to_owned()),
+            ]),
+            defs
+        );
     }
 
     fn make_some_words(n: usize, node: &super::Node) -> Vec<String> {

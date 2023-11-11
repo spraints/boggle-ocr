@@ -9,7 +9,7 @@ use std::sync::Arc;
 // DAWG based on https://jbp.dev/blog/dawg-basics.html
 // and https://github.com/sile/rust-dawg
 
-const JSON_DICT: &str = "OWL2.json";
+const JSON_DICT: &str = "DICT.json";
 const DICT: &str = "cached.dict";
 const DIR: &str = "/Users/spraints/src/github.com/spraints/boggle-ocr";
 
@@ -50,12 +50,22 @@ impl Letter {
     }
 }
 
-pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
-    let j = magic_read_to_string(path)?;
-    open_json_str(&j)
+pub fn open_defs(path: &Option<String>) -> Result<Definitions, Box<dyn Error>> {
+    let path = match path {
+        Some(ref p) => p,
+        None => JSON_DICT,
+    };
+    let f = File::open(path)?;
+    let defs = serde_json::from_reader(f)?;
+    Ok(defs)
 }
 
-pub fn open_json_str(j: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
+pub fn open_json(path: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
+    let j = magic_read_to_string(path)?;
+    parse_dict(&j)
+}
+
+pub fn parse_dict(j: &str) -> Result<(Dictionary, Definitions), Box<dyn Error>> {
     let mut de = serde_json::Deserializer::from_str(j);
     let mut builder = DictionaryBuilder::new();
     let mut defs = HashMap::new();
@@ -615,7 +625,7 @@ mod test {
 
     #[test]
     fn open_dict_js() {
-        let (dict, defs) = super::open_json_str(TEST_DICT).unwrap();
+        let (dict, defs) = super::parse_dict(TEST_DICT).unwrap();
         check_test_words(&dict);
         assert_eq!(
             super::Definitions::from([

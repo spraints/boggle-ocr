@@ -33,9 +33,13 @@ pub enum Commands {
 
 #[derive(Args)]
 pub struct BoggleOptions {
-    /// The JSON or compiled dictionary to use. Defaults to cached.dict or OWL2.json in the current directory.
+    /// The JSON or compiled dictionary to use. Defaults to cached.dict or DICT.json in the current directory.
     #[clap(short, long)]
     pub dict: Option<String>,
+
+    /// The JSON dictionary to use. Defaults to DICT.json in the current directory.
+    #[clap(long)]
+    pub defs: Option<String>,
 
     /// The board as a text file, one line per row.
     pub board: String,

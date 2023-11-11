@@ -29,7 +29,8 @@ type Res = Result<(), Box<dyn std::error::Error>>;
 
 fn boggle(opts: options::BoggleOptions) -> Res {
     let dict = dictionary::open_magic(&opts.dict)?;
-    wordsearch::find_all_in_file(&opts.board, dict)
+    let defs = dictionary::open_defs(&opts.defs)?;
+    wordsearch::find_all_in_file(&opts.board, dict, defs)
 }
 
 fn wordle(opts: options::WordleOptions) -> Res {

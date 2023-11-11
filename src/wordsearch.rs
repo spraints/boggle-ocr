@@ -4,7 +4,11 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
 
-pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), Box<dyn Error>> {
+pub fn find_all_in_file(
+    path: &str,
+    dict: dictionary::Dictionary,
+    defs: dictionary::Definitions,
+) -> Result<(), Box<dyn Error>> {
     let raw_board = read_to_string(path)?;
     let board = boggled(&raw_board)?;
 
@@ -24,7 +28,11 @@ pub fn find_all_in_file(path: &str, dict: dictionary::Dictionary) -> Result<(), 
     let mut scored_words: Vec<(u32, String)> = words.into_iter().map(|w| (score(&w), w)).collect();
     scored_words.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
     for (s, w) in scored_words.into_iter().take(20) {
-        println!("  {:2} {}", s, w);
+        let def = match defs.get(&w) {
+            Some(def) => def.to_owned(),
+            None => "".to_owned(),
+        };
+        println!("  {:2} {:13} {}", s, w, def);
     }
 
     Ok(())

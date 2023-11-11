@@ -4,7 +4,6 @@ use std::io::BufWriter;
 
 pub mod dictionary;
 mod options;
-mod server;
 mod wordle;
 mod wordsearch;
 
@@ -18,7 +17,6 @@ fn main() {
         Wordle(opts) => wordle(opts),
         Summarize(opts) => summarize(opts),
         Compile(opts) => compile(opts),
-        Server(opts) => serve(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);
@@ -169,11 +167,6 @@ fn compile(opts: options::CompileOptions) -> Res {
     let mut outf = BufWriter::new(outf);
     dict.save(&mut outf)?;
     Ok(())
-}
-
-fn serve(opts: options::ServerOptions) -> Result<(), Box<dyn Error>> {
-    let (dict, defs) = dictionary::open_json(&opts.dict)?;
-    server::serve(&opts.addr, dict, defs)
 }
 
 // TODO - use thiserror

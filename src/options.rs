@@ -26,9 +26,6 @@ pub enum Commands {
 
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
-
-    /// Run a web server.
-    Server(ServerOptions),
 }
 
 #[derive(Args)]
@@ -99,15 +96,4 @@ pub struct CompileOptions {
 
     /// The compiled output file.
     pub output: String,
-}
-
-#[derive(Args)]
-pub struct ServerOptions {
-    /// Address to listen on.
-    #[clap(short, long, default_value_t = String::from("127.0.0.1:8000"))]
-    pub addr: String,
-
-    /// JSON dictionary to use.
-    #[clap(short, long, default_value_t = String::from("OWL2.json"))]
-    pub dict: String,
 }

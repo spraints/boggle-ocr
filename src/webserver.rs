@@ -130,7 +130,7 @@ async fn solve_boggle(
 }
 
 async fn boggle_word(Path(word): Path<String>, State(data): State<Data>) -> impl IntoResponse {
-    match data.defs.get(&word) {
+    match data.defs.get(&word.to_lowercase()) {
         Some(def) => (StatusCode::OK, def.to_owned()),
         None => (StatusCode::NOT_FOUND, "".to_owned()),
     }

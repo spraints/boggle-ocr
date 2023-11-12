@@ -109,7 +109,8 @@ impl PartialEq<Word> for Word {
 
 impl Eq for Word {}
 
-fn score(word: &str) -> u32 {
+/// Get the boggle score for a word.
+pub fn score(word: &str) -> u32 {
     match word.len() {
         0 | 1 | 2 => 0,
         3 | 4 => 1,
@@ -120,7 +121,7 @@ fn score(word: &str) -> u32 {
     }
 }
 
-fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
+pub fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
     let mut res = HashSet::new();
     let mut scratch = Vec::with_capacity(25);
     for i in 0..5 {
@@ -305,7 +306,7 @@ type Pos = (usize, usize);
 type Board = [[dictionary::Letter; 5]; 5];
 type AnyBoard = Vec<Vec<dictionary::Letter>>;
 
-fn boggled(raw: &str) -> Result<Board, WSError> {
+pub fn boggled(raw: &str) -> Result<Board, WSError> {
     let mut res = [[dictionary::Letter::empty(); 5]; 5];
     for (i, line) in raw.lines().enumerate() {
         if i > 4 {
@@ -338,7 +339,7 @@ fn boggled(raw: &str) -> Result<Board, WSError> {
 
 // TODO - use thiserror
 #[derive(Debug)]
-enum WSError {
+pub enum WSError {
     InvalidBoard(String),
 }
 

@@ -1,4 +1,4 @@
-name: Wordle Cheat
+name: Word Game Cheat
 
 on:
   workflow_dispatch:

@@ -28,7 +28,7 @@ pub enum Commands {
     Compile(CompileOptions),
 
     /// Run a web server.
-    Server(ServerOptions),
+    Serve(ServerOptions),
 }
 
 #[derive(Args)]
@@ -103,11 +103,19 @@ pub struct CompileOptions {
 
 #[derive(Args)]
 pub struct ServerOptions {
-    /// Address to listen on.
-    #[clap(short, long, default_value_t = String::from("127.0.0.1:8000"))]
-    pub addr: String,
+    /// The address (default 127.0.0.1:0) where the server will listen.
+    #[clap(long)]
+    pub addr: Option<String>,
 
-    /// JSON dictionary to use.
-    #[clap(short, long, default_value_t = String::from("OWL2.json"))]
-    pub dict: String,
+    /// The directory where static assets are found.
+    #[clap(long)]
+    pub assets: Option<String>,
+
+    /// The cached.dict file (default cached.dict).
+    #[clap(long)]
+    pub dict: Option<String>,
+
+    /// The full dictionary, including definitions (default DICT.json).
+    #[clap(long)]
+    pub defs: Option<String>,
 }

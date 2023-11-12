@@ -55,6 +55,10 @@ pub fn open_defs(path: &Option<String>) -> Result<Definitions, Box<dyn Error>> {
         Some(ref p) => p,
         None => JSON_DICT,
     };
+    open_defs_path(path)
+}
+
+pub fn open_defs_path(path: impl AsRef<Path>) -> Result<Definitions, Box<dyn Error>> {
     let f = File::open(path)?;
     let defs = serde_json::from_reader(f)?;
     Ok(defs)
@@ -102,8 +106,8 @@ pub fn open_magic(path: &Option<String>) -> Result<Dictionary, Box<dyn Error>> {
     Ok(builder.into_dict(DEBUG))
 }
 
-fn read(path: &str) -> Result<Dictionary, Box<dyn Error>> {
-    let f = match File::open(path) {
+pub fn read(path: impl AsRef<Path>) -> Result<Dictionary, Box<dyn Error>> {
+    let f = match File::open(&path) {
         Ok(f) => f,
         Err(orig_err) => File::open(other_path(path)).or(Err(orig_err))?,
     };

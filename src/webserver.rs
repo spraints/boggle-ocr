@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::get;
@@ -48,6 +48,7 @@ async fn async_serve(addr: String, assets_dir: String, dict: Dictionary, defs: D
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
         .route("/boggle/solver/solution", get(solve_boggle))
+        .route("/boggle/dict/words/:word", get(boggle_word))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
@@ -126,4 +127,11 @@ async fn solve_boggle(
         best_words,
     })
     .into_response()
+}
+
+async fn boggle_word(Path(word): Path<String>, State(data): State<Data>) -> impl IntoResponse {
+    match data.defs.get(&word) {
+        Some(def) => (StatusCode::OK, def.to_owned()),
+        None => (StatusCode::NOT_FOUND, "".to_owned()),
+    }
 }

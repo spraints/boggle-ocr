@@ -26,6 +26,9 @@ pub enum Commands {
 
     /// Compile a JSON dictionary.
     Compile(CompileOptions),
+
+    /// Run a web server.
+    Serve(ServerOptions),
 }
 
 #[derive(Args)]
@@ -96,4 +99,23 @@ pub struct CompileOptions {
 
     /// The compiled output file.
     pub output: String,
+}
+
+#[derive(Args)]
+pub struct ServerOptions {
+    /// The address (default 127.0.0.1:0) where the server will listen.
+    #[clap(long)]
+    pub addr: Option<String>,
+
+    /// The directory where static assets are found.
+    #[clap(long)]
+    pub assets: Option<String>,
+
+    /// The cached.dict file (default cached.dict).
+    #[clap(long)]
+    pub dict: Option<String>,
+
+    /// The full dictionary, including definitions (default DICT.json).
+    #[clap(long)]
+    pub defs: Option<String>,
 }

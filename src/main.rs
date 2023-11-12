@@ -4,6 +4,7 @@ use std::io::BufWriter;
 
 pub mod dictionary;
 mod options;
+mod webserver;
 mod wordle;
 mod wordsearch;
 
@@ -17,6 +18,7 @@ fn main() {
         Wordle(opts) => wordle(opts),
         Summarize(opts) => summarize(opts),
         Compile(opts) => compile(opts),
+        Serve(opts) => webserver::serve(opts),
     } {
         println!("error: {}", err);
         std::process::exit(1);

@@ -1,5 +1,3 @@
-use std::env;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::{Query, State};
@@ -8,36 +6,44 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
+use tokio::runtime::Runtime;
 use tower_http::services::ServeDir;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use boggle_ocr::dictionary;
-use boggle_ocr::wordsearch;
+use crate::dictionary::{self, Definitions, Dictionary};
+use crate::options::ServerOptions;
+use crate::wordsearch;
 
-#[tokio::main]
-async fn main() {
+pub fn serve(opts: ServerOptions) -> Result<(), Box<dyn std::error::Error>> {
+    let ServerOptions {
+        addr,
+        assets,
+        dict,
+        defs,
+    } = opts;
+
+    let addr = addr.unwrap_or("127.0.0.1:0".to_owned());
+    let assets = assets.unwrap_or("assets".to_owned());
+    let dict = dict.unwrap_or("cached.dict".to_owned());
+    let defs = defs.unwrap_or("DICT.json".to_owned());
+
+    let dict = dictionary::read(&dict)?;
+    let defs = dictionary::open_defs_path(&defs)?;
+
+    let rt = Runtime::new()?;
+    rt.block_on(async move { async_serve(addr, assets, dict, defs).await });
+    Ok(())
+}
+
+async fn async_serve(addr: String, assets_dir: String, dict: Dictionary, defs: Definitions) {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "web=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "boggle_ocr=debug,tower_http=debug".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-
-    let assets_dir = env::var("ASSET_DIR")
-        .map(|v| PathBuf::from(v))
-        .unwrap_or(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"));
-    let addr = env::var("ADDR").unwrap_or("127.0.0.1:0".to_owned());
-    let dict = env::var("DICT")
-        .map(|v| PathBuf::from(v))
-        .unwrap_or(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("cached.dict"));
-    let defs = env::var("DEFS")
-        .map(|v| PathBuf::from(v))
-        .unwrap_or(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("DICT.json"));
-
-    let dict = dictionary::read(&dict).unwrap();
-    let defs = dictionary::open_defs_path(&defs).unwrap();
 
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))

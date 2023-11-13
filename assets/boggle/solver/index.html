@@ -7,15 +7,24 @@
   <title>Word Game Cheats</title>
   <meta name="description" content="Cheat on word games.">
   <meta name="author" content="spraints">
+  <link type="text/css" rel="stylesheet" href="/app.css">
+  <!-- <link rel="icon" type="image/png" href="/..."> -->
 </head>
 
 <body>
-  <p><a href="/">&lt;&lt; Home</a></p>
-  <h1>Cheat at boggle</h1>
-  <p>Type the board here, one line per line</p>
-  <textarea id="board" rows=5 spellcheck=false autocomplete=off></textarea>
-  <button id="solve">Solve</button>
-  <div id="solution"></div>
+  <div class="container">
+    <div class="header">
+      <h1 class="page-title">Cheat at boggle</h1>
+      <div class="home-link"><a href="/">Home</a></div>
+    </div>
+    <div class="content">
+      <p>Type the board here</p>
+      <textarea id="board" rows=5 spellcheck=false autocomplete=off></textarea>
+      <button id="solve">Solve</button>
+      <div id="solution"></div>
+    </div>
+  </div>
+
   <script src="/js/boggle-solver.js"></script>
 </body>
 </html>

@@ -50,6 +50,20 @@ impl Letter {
     }
 }
 
+pub fn l(ch: char) -> Letter {
+    Letter::new(ch)
+}
+
+impl std::fmt::Debug for Letter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Letter({})",
+            if self.is_empty() { '-' } else { self.ch() }
+        )
+    }
+}
+
 pub fn open_defs(path: &Option<String>) -> Result<Definitions, Box<dyn Error>> {
     let path = match path {
         Some(ref p) => p,
@@ -524,12 +538,14 @@ impl NodeRefParseState {
 }
 
 pub fn try_letter_pos(letter: char) -> Option<Letter> {
-    let pos = letter.to_lowercase().next().unwrap() as u8 - b'a';
-    if pos < 26 {
-        Some(Letter(pos as usize))
-    } else {
-        None
-    }
+    letter.to_lowercase().next().and_then(|ch| {
+        let pos = ch as u8 - b'a';
+        if pos < 26 {
+            Some(Letter(pos as usize))
+        } else {
+            None
+        }
+    })
 }
 
 pub fn letter_pos(letter: char) -> Letter {

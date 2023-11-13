@@ -308,33 +308,26 @@ type AnyBoard = Vec<Vec<dictionary::Letter>>;
 
 pub fn boggled(raw: &str) -> Result<Board, WSError> {
     let mut res = [[dictionary::Letter::empty(); 5]; 5];
-    for (i, line) in raw.lines().enumerate() {
-        if i > 4 {
-            return Err(WSError::InvalidBoard(String::from(
-                "too many lines in input",
-            )));
-        }
-        for (j, ch) in line.chars().enumerate() {
-            if j > 4 {
-                return Err(WSError::InvalidBoard(format!(
-                    "too many letters on line {}",
-                    i + 1
-                )));
+    let mut n = 0;
+    for ch in raw.chars() {
+        match ch {
+            'a'..='z' | 'A'..='Z' => {
+                if n < 25 {
+                    res[n / 5][n % 5] = dictionary::letter_pos(ch);
+                    n = n + 1;
+                } else {
+                    return Err(WSError::InvalidBoard(format!("too many letters")));
+                }
             }
-            res[i][j] = dictionary::letter_pos(ch);
-        }
+            ' ' | '\n' | '\t' => {}
+            _ => return Err(WSError::InvalidBoard(format!("invalid char {:?}", ch))),
+        };
     }
-    for (i, row) in res.iter().enumerate() {
-        for ch in row {
-            if ch.is_empty() {
-                return Err(WSError::InvalidBoard(format!(
-                    "not enough letters on line {}",
-                    i + 1
-                )));
-            }
-        }
+    if n < 25 {
+        Err(WSError::InvalidBoard(format!("not enough letters")))
+    } else {
+        Ok(res)
     }
-    Ok(res)
 }
 
 // TODO - use thiserror
@@ -355,7 +348,11 @@ impl Error for WSError {}
 
 #[cfg(test)]
 mod test {
-    use super::dictionary::build_dictionary;
+
+    use pretty_assertions::assert_eq;
+
+    use super::boggled;
+    use super::dictionary::{build_dictionary, l};
 
     #[test]
     fn example() {
@@ -372,5 +369,79 @@ mod test {
         let res = super::find_boggle_words(&vec!["qic", "xkk"], &dict, 3);
         let words: Vec<String> = res.into_iter().map(|w| w.word).collect();
         assert_eq!(words, vec!["quick"]);
+    }
+
+    #[test]
+    fn boggled_too_short() {
+        let res = boggled("abcde fghij klmno pqrst uvwx");
+        assert!(res.is_err(), "expected {:?} to be an Err", res);
+        //assert!(boggled("abcde fghij klmno pqrst uvwx").is_err());
+        //assert_matches!(Err(_), boggled("abcde fghij klmno pqrst uvwx"));
+    }
+
+    #[test]
+    fn boggled_too_long() {
+        assert!(boggled("abcde fghij klmno pqrst uvwxyz").is_err());
+    }
+
+    #[test]
+    fn boggled_numeral() {
+        assert!(boggled("1bcde fghij klmno pqrst uvwxy").is_err());
+    }
+
+    #[test]
+    fn boggled_lines() {
+        assert_eq!(
+            boggled("abcde\nfghij\nklmno\npqrst\nuvwxy\n").unwrap(),
+            [
+                [l('a'), l('b'), l('c'), l('d'), l('e')],
+                [l('f'), l('g'), l('h'), l('i'), l('j')],
+                [l('k'), l('l'), l('m'), l('n'), l('o')],
+                [l('p'), l('q'), l('r'), l('s'), l('t')],
+                [l('u'), l('v'), l('w'), l('x'), l('y')],
+            ],
+        );
+    }
+
+    #[test]
+    fn boggled_caps() {
+        assert_eq!(
+            boggled("ABCDE\nFGHIJ\nKLMNO\nPQRST\nUVWXY\n").unwrap(),
+            [
+                [l('a'), l('b'), l('c'), l('d'), l('e')],
+                [l('f'), l('g'), l('h'), l('i'), l('j')],
+                [l('k'), l('l'), l('m'), l('n'), l('o')],
+                [l('p'), l('q'), l('r'), l('s'), l('t')],
+                [l('u'), l('v'), l('w'), l('x'), l('y')],
+            ],
+        );
+    }
+
+    #[test]
+    fn boggled_padded() {
+        assert_eq!(
+            boggled("   abcde\nfghij\nklmno\npqrst\nuvwxy\n\n\n  \n\n").unwrap(),
+            [
+                [l('a'), l('b'), l('c'), l('d'), l('e')],
+                [l('f'), l('g'), l('h'), l('i'), l('j')],
+                [l('k'), l('l'), l('m'), l('n'), l('o')],
+                [l('p'), l('q'), l('r'), l('s'), l('t')],
+                [l('u'), l('v'), l('w'), l('x'), l('y')],
+            ],
+        );
+    }
+
+    #[test]
+    fn boggled_spaces() {
+        assert_eq!(
+            boggled("abcde fghij klmno pqrst uvwxy").unwrap(),
+            [
+                [l('a'), l('b'), l('c'), l('d'), l('e')],
+                [l('f'), l('g'), l('h'), l('i'), l('j')],
+                [l('k'), l('l'), l('m'), l('n'), l('o')],
+                [l('p'), l('q'), l('r'), l('s'), l('t')],
+                [l('u'), l('v'), l('w'), l('x'), l('y')],
+            ],
+        );
     }
 }

@@ -141,7 +141,7 @@ pub fn build_dictionary(mut words: Vec<&str>) -> Dictionary {
     words.sort();
     let mut db = DictionaryBuilder::new();
     for word in words {
-        db.insert(&word, false);
+        db.insert(word, false);
     }
     db.into_dict(false)
 }

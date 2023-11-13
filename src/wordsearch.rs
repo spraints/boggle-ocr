@@ -91,7 +91,7 @@ impl Word {
 
 impl PartialOrd<Word> for Word {
     fn partial_cmp(&self, other: &Word) -> Option<std::cmp::Ordering> {
-        self.word.partial_cmp(&other.word)
+        Some(self.cmp(other))
     }
 }
 
@@ -112,7 +112,7 @@ impl Eq for Word {}
 /// Get the boggle score for a word.
 pub fn score(word: &str) -> u32 {
     match word.len() {
-        0 | 1 | 2 => 0,
+        0..=2 => 0,
         3 | 4 => 1,
         5 => 2,
         6 => 3,
@@ -314,9 +314,9 @@ pub fn boggled(raw: &str) -> Result<Board, WSError> {
             'a'..='z' | 'A'..='Z' => {
                 if n < 25 {
                     res[n / 5][n % 5] = dictionary::letter_pos(ch);
-                    n = n + 1;
+                    n += 1;
                 } else {
-                    return Err(WSError::InvalidBoard(format!("too many letters")));
+                    return Err(WSError::InvalidBoard("too many letters".to_string()));
                 }
             }
             ' ' | '\n' | '\t' => {}
@@ -324,7 +324,7 @@ pub fn boggled(raw: &str) -> Result<Board, WSError> {
         };
     }
     if n < 25 {
-        Err(WSError::InvalidBoard(format!("not enough letters")))
+        Err(WSError::InvalidBoard("not enough letters".to_string()))
     } else {
         Ok(res)
     }

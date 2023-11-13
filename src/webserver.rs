@@ -16,6 +16,14 @@ use crate::options::ServerOptions;
 use crate::wordsearch;
 
 pub fn serve(opts: ServerOptions) -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "boggle_ocr=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let ServerOptions {
         addr,
         assets,
@@ -28,8 +36,11 @@ pub fn serve(opts: ServerOptions) -> Result<(), Box<dyn std::error::Error>> {
     let dict = dict.unwrap_or("cached.dict".to_owned());
     let defs = defs.unwrap_or("DICT.json".to_owned());
 
+    tracing::debug!("reading DAG...");
     let dict = dictionary::read(&dict)?;
+    tracing::debug!("reading definitions...");
     let defs = dictionary::open_defs_path(&defs)?;
+    tracing::debug!("loaded {} words", defs.len());
 
     let rt = Runtime::new()?;
     rt.block_on(async move { async_serve(addr, assets, dict, defs).await });
@@ -37,14 +48,6 @@ pub fn serve(opts: ServerOptions) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn async_serve(addr: String, assets_dir: String, dict: Dictionary, defs: Definitions) {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "boggle_ocr=debug,tower_http=debug".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
         .route("/boggle/solver/solution", get(solve_boggle))

@@ -1,5 +1,6 @@
 use super::dictionary::{self, Q, U};
 use serde::Serialize;
+use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
@@ -25,9 +26,12 @@ pub fn find_all_in_file(
         total_score as f32 / words.len() as f32,
     );
     println!("best words:");
-    let mut scored_words: Vec<(u32, String)> = words.into_iter().map(|w| (score(&w), w)).collect();
-    scored_words.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
-    for (s, w) in scored_words.into_iter().take(20) {
+    let mut scored_words: Vec<(Reverse<u32>, Reverse<usize>, String)> = words
+        .into_iter()
+        .map(|w| (Reverse(score(&w)), Reverse(w.len()), w))
+        .collect();
+    scored_words.sort();
+    for (Reverse(s), _, w) in scored_words.into_iter().take(20) {
         let def = match defs.get(&w) {
             Some(def) => def.to_owned(),
             None => "".to_owned(),

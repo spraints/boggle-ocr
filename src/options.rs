@@ -41,6 +41,10 @@ pub struct BoggleOptions {
     #[clap(long)]
     pub defs: Option<String>,
 
+    /// Don't show definitions.
+    #[clap(long)]
+    pub no_defs: bool,
+
     /// The board as a text file, one line per row.
     pub board: String,
 }

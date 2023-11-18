@@ -2,6 +2,8 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufWriter;
 
+use dictionary::Definitions;
+
 pub mod dictionary;
 mod options;
 mod webserver;
@@ -29,7 +31,10 @@ type Res = Result<(), Box<dyn std::error::Error>>;
 
 fn boggle(opts: options::BoggleOptions) -> Res {
     let dict = dictionary::open_magic(&opts.dict)?;
-    let defs = dictionary::open_defs(&opts.defs)?;
+    let defs = match opts.no_defs {
+        true => Definitions::new(),
+        false => dictionary::open_defs(&opts.defs)?,
+    };
     wordsearch::find_all_in_file(&opts.board, dict, defs)
 }
 

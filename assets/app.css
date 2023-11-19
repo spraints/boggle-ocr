@@ -42,3 +42,32 @@ body {
   padding: 0.25em;
   border-radius: 3px;
 }
+
+.result {
+  padding: 1em;
+  border: solid 2px;
+}
+
+.result-hidden {
+  display: none;
+}
+
+.dictionary-entry {
+  border-color: #8f8;
+}
+
+.dictionary-word {
+  font-weight: bold;
+  padding-right: 1em;
+}
+
+.dictionary-definition {
+  font-style: italic;
+}
+
+.not-found {
+  font-weight: bold;
+  color: #800;
+  background-color: #f88;
+  border-color: #800;
+}

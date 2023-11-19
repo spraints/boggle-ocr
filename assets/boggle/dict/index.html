@@ -20,7 +20,11 @@
     <div class="content">
       <p>Which word would you like to look up?</p>
       <p><input id="word" type="text" spelling=false autocomplete=off></p>
-      <p id="result"><p>
+      <p class="result dictionary-entry result-hidden">
+        <span class="dictionary-word"></span>
+        <span class="dictionary-definition"></span>
+      </p>
+      <p class="result not-found result-hidden"></p>
     </div>
   </div>
   <script src="/js/boggle-dict.js"></script>

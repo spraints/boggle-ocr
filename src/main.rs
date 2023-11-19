@@ -31,9 +31,9 @@ type Res = Result<(), Box<dyn std::error::Error>>;
 
 fn boggle(opts: options::BoggleOptions) -> Res {
     let dict = dictionary::open_magic(&opts.dict)?;
-    let defs = match opts.no_defs {
-        true => Definitions::new(),
-        false => dictionary::open_defs(&opts.defs)?,
+    let defs = match opts.defs {
+        false => Definitions::new(),
+        true => dictionary::open_defs(&opts.defs_dict)?,
     };
     wordsearch::find_all_in_file(&opts.board, dict, defs, opts.show_all)
 }

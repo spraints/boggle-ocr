@@ -37,13 +37,13 @@ pub struct BoggleOptions {
     #[clap(short, long)]
     pub dict: Option<String>,
 
-    /// The JSON dictionary to use. Defaults to DICT.json in the current directory.
+    /// Use the given JSON dictionary to look up definitions. Defaults to DICT.json in the current directory.
     #[clap(long)]
-    pub defs: Option<String>,
+    pub defs_dict: Option<String>,
 
-    /// Don't show definitions.
+    /// Show definitions for the best words.
     #[clap(long)]
-    pub no_defs: bool,
+    pub defs: bool,
 
     /// Show all matches, not just the first 20.
     #[clap(long)]

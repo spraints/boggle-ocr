@@ -35,7 +35,7 @@ fn boggle(opts: options::BoggleOptions) -> Res {
         true => Definitions::new(),
         false => dictionary::open_defs(&opts.defs)?,
     };
-    wordsearch::find_all_in_file(&opts.board, dict, defs)
+    wordsearch::find_all_in_file(&opts.board, dict, defs, opts.show_all)
 }
 
 fn wordle(opts: options::WordleOptions) -> Res {

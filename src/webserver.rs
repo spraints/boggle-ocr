@@ -110,17 +110,11 @@ async fn solve_boggle(
 
     let total_score = words.iter().map(|w| wordsearch::score(w)).sum();
 
-    let mut scored_words: Vec<(u32, &String)> =
-        words.iter().map(|w| (wordsearch::score(w), w)).collect();
-    scored_words.sort_by(|(a, _), (b, _)| b.partial_cmp(a).unwrap());
-
-    let best_words = scored_words
+    let best_words = wordsearch::best_words(&words, best_words_count.or(Some(20)))
         .into_iter()
-        .take(best_words_count.unwrap_or(20))
-        .map(|(score, word)| ScoredBoggleWord {
-            word: word.clone(),
-            score,
-            def: data.defs.get(word).cloned(),
+        .map(|(word, score)| {
+            let def = data.defs.get(&word).cloned();
+            ScoredBoggleWord { word, score, def }
         })
         .collect();
 

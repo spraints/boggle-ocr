@@ -4,11 +4,13 @@ use std::cmp::Reverse;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::read_to_string;
+use std::ops::Index;
 
 pub fn find_all_in_file(
     path: &str,
     dict: dictionary::Dictionary,
     defs: dictionary::Definitions,
+    show_all: bool,
 ) -> Result<(), Box<dyn Error>> {
     let raw_board = read_to_string(path)?;
     let board = boggled(&raw_board)?;
@@ -26,20 +28,36 @@ pub fn find_all_in_file(
         total_score as f32 / words.len() as f32,
     );
     println!("best words:");
-    let mut scored_words: Vec<(Reverse<u32>, Reverse<usize>, String)> = words
-        .into_iter()
-        .map(|w| (Reverse(score(&w)), Reverse(w.len()), w))
-        .collect();
-    scored_words.sort();
-    for (Reverse(s), _, w) in scored_words.into_iter().take(20) {
+    let max_count = match show_all {
+        true => None,
+        false => Some(20),
+    };
+    for (w, s) in best_words(&words, max_count) {
         let def = match defs.get(&w) {
             Some(def) => def.to_owned(),
             None => "".to_owned(),
         };
-        println!("  {:2} {:13} {}", s, w, def);
+        println!("  {s:2} {w:13} {def}");
     }
 
     Ok(())
+}
+
+pub fn best_words(words: &[String], count: Option<usize>) -> Vec<(String, u32)> {
+    let mut sortable_words: Vec<(Reverse<u32>, Reverse<usize>, &String)> = words
+        .iter()
+        .map(|w| (Reverse(score(w)), Reverse(w.len()), w))
+        .collect();
+    sortable_words.sort();
+
+    if let Some(count) = count {
+        sortable_words.truncate(count);
+    }
+
+    sortable_words
+        .into_iter()
+        .map(|(Reverse(score), _, word)| (word.clone(), score))
+        .collect()
 }
 
 pub fn find_boggle_words(
@@ -128,8 +146,8 @@ pub fn score(word: &str) -> u32 {
 pub fn find_words(dict: &dictionary::Dictionary, board: &Board) -> Vec<String> {
     let mut res = HashSet::new();
     let mut scratch = Vec::with_capacity(25);
-    for i in 0..5 {
-        for j in 0..5 {
+    for i in 0..board.size() {
+        for j in 0..board.size() {
             let pos = (i, j);
             visit(
                 pos,
@@ -269,9 +287,10 @@ fn visit(
 ) {
     let (i, j) = pos;
     let ch = board[i][j];
+    let sz = board.size() as isize;
     if let Some(next_node) = lookup(node, ch) {
         scratch.push(ch);
-        if next_node.terminal && scratch.len() > 2 {
+        if next_node.terminal && scratch.len() >= board.min_word_size() {
             res.insert(scratch.clone());
         }
         for di in -1..=1 {
@@ -279,7 +298,7 @@ fn visit(
                 if di != 0 || dj != 0 {
                     let ni = di + i as isize;
                     let nj = dj + j as isize;
-                    if ni >= 0 && nj >= 0 && ni < 5 && nj < 5 {
+                    if ni >= 0 && nj >= 0 && ni < sz && nj < sz {
                         let npos = (ni as usize, nj as usize);
                         let nvisited = mark_visit(visited, npos);
                         if nvisited != visited {
@@ -307,30 +326,70 @@ fn mark_visit(visited: Visited, pos: Pos) -> Visited {
 
 type Visited = u32;
 type Pos = (usize, usize);
-type Board = [[dictionary::Letter; 5]; 5];
+
 type AnyBoard = Vec<Vec<dictionary::Letter>>;
 
+#[derive(Debug, PartialEq)]
+pub enum Board {
+    Small([[dictionary::Letter; 4]; 4]),
+    Large([[dictionary::Letter; 5]; 5]),
+}
+
+impl Board {
+    fn size(&self) -> usize {
+        match self {
+            Board::Small(_) => 4,
+            Board::Large(_) => 5,
+        }
+    }
+
+    fn min_word_size(&self) -> usize {
+        match self {
+            Board::Small(_) => 3,
+            Board::Large(_) => 4,
+        }
+    }
+}
+
+impl Index<usize> for Board {
+    type Output = [dictionary::Letter];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            Board::Small(b) => &b[index],
+            Board::Large(b) => &b[index],
+        }
+    }
+}
+
 pub fn boggled(raw: &str) -> Result<Board, WSError> {
-    let mut res = [[dictionary::Letter::empty(); 5]; 5];
-    let mut n = 0;
+    let mut l = Vec::new();
     for ch in raw.chars() {
         match ch {
             'a'..='z' | 'A'..='Z' => {
-                if n < 25 {
-                    res[n / 5][n % 5] = dictionary::letter_pos(ch);
-                    n += 1;
-                } else {
-                    return Err(WSError::InvalidBoard("too many letters".to_string()));
-                }
+                l.push(dictionary::letter_pos(ch));
             }
             ' ' | '\n' | '\t' => {}
             _ => return Err(WSError::InvalidBoard(format!("invalid char {:?}", ch))),
         };
     }
-    if n < 25 {
-        Err(WSError::InvalidBoard("not enough letters".to_string()))
-    } else {
-        Ok(res)
+    match l.len() {
+        16 => Ok(Board::Small([
+            [l[0], l[1], l[2], l[3]],
+            [l[4], l[5], l[6], l[7]],
+            [l[8], l[9], l[10], l[11]],
+            [l[12], l[13], l[14], l[15]],
+        ])),
+        25 => Ok(Board::Large([
+            [l[0], l[1], l[2], l[3], l[4]],
+            [l[5], l[6], l[7], l[8], l[9]],
+            [l[10], l[11], l[12], l[13], l[14]],
+            [l[15], l[16], l[17], l[18], l[19]],
+            [l[20], l[21], l[22], l[23], l[24]],
+        ])),
+        n => Err(WSError::InvalidBoard(format!(
+            "board must have 16 or 25 letters, not {n}"
+        ))),
     }
 }
 
@@ -352,8 +411,9 @@ impl Error for WSError {}
 
 #[cfg(test)]
 mod test {
-
     use pretty_assertions::assert_eq;
+
+    use crate::wordsearch::Board;
 
     use super::boggled;
     use super::dictionary::{build_dictionary, l};
@@ -397,13 +457,26 @@ mod test {
     fn boggled_lines() {
         assert_eq!(
             boggled("abcde\nfghij\nklmno\npqrst\nuvwxy\n").unwrap(),
-            [
+            Board::Large([
                 [l('a'), l('b'), l('c'), l('d'), l('e')],
                 [l('f'), l('g'), l('h'), l('i'), l('j')],
                 [l('k'), l('l'), l('m'), l('n'), l('o')],
                 [l('p'), l('q'), l('r'), l('s'), l('t')],
                 [l('u'), l('v'), l('w'), l('x'), l('y')],
-            ],
+            ]),
+        );
+    }
+
+    #[test]
+    fn boggled_small() {
+        assert_eq!(
+            boggled("abcd\nfghi\nklmn\npqrs\n").unwrap(),
+            Board::Small([
+                [l('a'), l('b'), l('c'), l('d')],
+                [l('f'), l('g'), l('h'), l('i')],
+                [l('k'), l('l'), l('m'), l('n')],
+                [l('p'), l('q'), l('r'), l('s')],
+            ]),
         );
     }
 
@@ -411,13 +484,13 @@ mod test {
     fn boggled_caps() {
         assert_eq!(
             boggled("ABCDE\nFGHIJ\nKLMNO\nPQRST\nUVWXY\n").unwrap(),
-            [
+            Board::Large([
                 [l('a'), l('b'), l('c'), l('d'), l('e')],
                 [l('f'), l('g'), l('h'), l('i'), l('j')],
                 [l('k'), l('l'), l('m'), l('n'), l('o')],
                 [l('p'), l('q'), l('r'), l('s'), l('t')],
                 [l('u'), l('v'), l('w'), l('x'), l('y')],
-            ],
+            ]),
         );
     }
 
@@ -425,13 +498,13 @@ mod test {
     fn boggled_padded() {
         assert_eq!(
             boggled("   abcde\nfghij\nklmno\npqrst\nuvwxy\n\n\n  \n\n").unwrap(),
-            [
+            Board::Large([
                 [l('a'), l('b'), l('c'), l('d'), l('e')],
                 [l('f'), l('g'), l('h'), l('i'), l('j')],
                 [l('k'), l('l'), l('m'), l('n'), l('o')],
                 [l('p'), l('q'), l('r'), l('s'), l('t')],
                 [l('u'), l('v'), l('w'), l('x'), l('y')],
-            ],
+            ]),
         );
     }
 
@@ -439,13 +512,13 @@ mod test {
     fn boggled_spaces() {
         assert_eq!(
             boggled("abcde fghij klmno pqrst uvwxy").unwrap(),
-            [
+            Board::Large([
                 [l('a'), l('b'), l('c'), l('d'), l('e')],
                 [l('f'), l('g'), l('h'), l('i'), l('j')],
                 [l('k'), l('l'), l('m'), l('n'), l('o')],
                 [l('p'), l('q'), l('r'), l('s'), l('t')],
                 [l('u'), l('v'), l('w'), l('x'), l('y')],
-            ],
+            ]),
         );
     }
 }

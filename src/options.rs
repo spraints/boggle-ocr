@@ -45,6 +45,10 @@ pub struct BoggleOptions {
     #[clap(long)]
     pub no_defs: bool,
 
+    /// Show all matches, not just the first 20.
+    #[clap(long)]
+    pub show_all: bool,
+
     /// The board as a text file, one line per row.
     pub board: String,
 }

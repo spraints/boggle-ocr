@@ -7,10 +7,10 @@ const resultError = document.querySelector(".not-found")
 
 word.addEventListener("input", async function() {
   const s = word.value
-  for (e of results) {
-    e.classList.add("result-hidden")
-  }
   if (s == "") {
+    for (e of results) {
+      e.classList.add("result-hidden")
+    }
     return
   }
 
